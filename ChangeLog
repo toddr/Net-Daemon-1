@@ -1,3 +1,9 @@
+2002-08-20  Jochen Wiedmann  <joe@ispsoft.de> (0.37)
+
+	* lib/Net/Daemon.pm (Bind): The server died, if
+	  accepting a connection failed. Fixed.
+	  Nathan Mueller <nmueller@cs.wisc.edu>
+
 2001-11-12  Jochen Wiedmann  <joe@ispsoft.de> (0.36)
 
 	* For whatever reason, Thread->self returns undef
