@@ -32,7 +32,7 @@ use Net::Daemon::Log ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.22';
+$Net::Daemon::VERSION = '0.23';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -237,13 +237,14 @@ sub new ($$;$) {
 	if (eval { require Thread }) {
 	    $self->{'mode'} = 'threads';
 	} else {
-	    my $pid = eval { $self->fork() };
+	    my $pid = eval { fork() };
 	    if (!defined($pid)) {
 		$self->{'mode'} = 'single';
 	    } elsif (!$pid) {
 		# This is the child, exit immediately
 		exit(0);
 	    } else {
+		wait;
 		$self->{'mode'} = 'fork';
 	    }
 	}

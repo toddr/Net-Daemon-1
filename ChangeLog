@@ -1,3 +1,8 @@
+1999-07-02  Jochen Wiedmann <joe@ispsoft.de> (0.23)
+
+	* lib/Net/Daemon.pm (new): Fixed automatic mode detection.
+	  Benjamin Ritcey <Benjamin.Ritcey@tfn.com>
+
 1999-07-01  Jochen Wiedmann  <joe@ispsoft.de> (0.22)
 
 	* lib/Net/Daemon.pm (Bind): Made --pidfile working.
