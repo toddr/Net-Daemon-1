@@ -36,8 +36,8 @@ DESCRIPTION
 
     Two constructors are available: The new method is called upon startup
     and creates an object that will basically act as an anchor over the
-    complete program. It supports command line parsing via the section on
-    "Getopt::Long (3)".
+    complete program. It supports command line parsing via the Getopt::Long
+    (3) entry elsewhere in this document.
 
     Arguments of new are *$attr*, an hash ref of attributes (see below) and
     *$options* an array ref of options, typically command line arguments
@@ -91,8 +91,8 @@ DESCRIPTION
         level "debug" are created.
 
     *facility* (--facility=mode)
-        (UNIX only) Facility to use for the section on "Sys::Syslog (3)".
-        The default is daemon.
+        (UNIX only) Facility to use for the Sys::Syslog (3) entry elsewhere
+        in this document. The default is daemon.
 
     *group* (--group=gid)
         After doing a bind(), change the real and effective GID to the
@@ -131,8 +131,8 @@ DESCRIPTION
         Some servers need to take an action from time to time. For example
         the Net::Daemon::Spooler attempts to empty its spooling queue every
         5 minutes. If this option is set to a positive value (zero being the
-        default), then the server will call its Loop method every "loop-
-        timeout" seconds.
+        default), then the server will call its Loop method every
+        "loop-timeout" seconds.
 
         Don't trust too much on the precision of the interval: It depends on
         a number of factors, in particular the execution time of the Loop()
@@ -162,8 +162,8 @@ DESCRIPTION
         a connection, he will enter the Run() method. No other connections
         are accepted until the Run() method returns. This operation mode is
         usefull if you have neither threads nor fork(), for example on the
-        Macintosh. For debugging purposes you can force this mode with "--
-        mode=single".
+        Macintosh. For debugging purposes you can force this mode with
+        "--mode=single".
 
     *options*
         Array ref of Command line options that have been passed to the
@@ -285,10 +285,11 @@ DESCRIPTION
     The clients attribute is an array ref to a list of hash refs. Any of the
     hash refs may contain arbitrary attributes, including the following:
 
-    mask    A Perl regular expression that has to match the clients IP number or
-            its host name. The list is processed from the left to the right,
-            whenever a 'mask' attribute matches, then the related hash ref
-            is choosen as client and processing the client list stops.
+    mask    A Perl regular expression that has to match the clients IP
+            number or its host name. The list is processed from the left to
+            the right, whenever a 'mask' attribute matches, then the related
+            hash ref is choosen as client and processing the client list
+            stops.
 
     accept  This may be set to true or false (default when omitting the
             attribute), the former means accepting the client.
@@ -300,10 +301,11 @@ DESCRIPTION
       $server->Error($format, @args);
       $server->Fatal($format, @args);
 
-    The Log method is an interface to the section on "Sys::Syslog (3)" or
-    the section on "Win32::EventLog (3)". It's arguments are *$level*, a
-    syslog level like debug, notice or err, a format string in the style of
-    printf and the format strings arguments.
+    The Log method is an interface to the Sys::Syslog (3) entry elsewhere in
+    this document or the Win32::EventLog (3) entry elsewhere in this
+    document. It's arguments are *$level*, a syslog level like debug, notice
+    or err, a format string in the style of printf and the format strings
+    arguments.
 
     The Debug and Error methods are shorthands for calling Log with a level
     of debug and err, respectively. The Fatal method is like Error, except
