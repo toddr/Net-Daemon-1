@@ -122,7 +122,8 @@ sub Fatal ($$;@) {
     my $self = shift; my $fmt = shift;
     my $msg = sprintf($fmt, @_);
     $self->Log('err', $msg);
-    die $msg;
+    my($package, $filename, $line) = caller();
+    die "$msg at $filename line $line.";
 }
 
 sub LogTime { scalar(localtime) }

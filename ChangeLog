@@ -1,3 +1,8 @@
+1999-11-14  Jochen Wiedmann  <joe@ispsoft.de> (0.29)
+
+	* lib/Net/Daemon/Log.pm (Fatal): Now displaying the callers
+	  error line and file, rather than that of the Fatal() method.
+
 1999-09-26  Jochen Wiedmann  <joe@ispsoft.de> (0.28)
 
 	* lib/Net/Daemon/Log.pm: Added LogTime method. 
