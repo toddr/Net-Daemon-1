@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: Daemon.pm,v 1.2 1999/08/12 14:28:55 joe Exp $
+#   $Id: Daemon.pm,v 1.3 1999/09/26 14:50:12 joe Exp $
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.27';
+$Net::Daemon::VERSION = '0.28';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -308,7 +308,7 @@ sub Accept ($) {
     my $clients = $self->{'clients'};
     my $from = $self->{'proto'} eq 'unix' ?
 	"Unix socket" : sprintf("%s, port %s",
-				$socket->sockhost(), $socket->sockport());
+				$socket->peerhost(), $socket->peerport());
 
     # Host based authorization
     if ($self->{'clients'}) {
@@ -493,7 +493,7 @@ sub HandleChild {
 sub SigChildHandler {
     my $self = shift; my $ref = shift;
     return undef if $self->{'mode'} ne 'fork'; # Don't care for childs.
-    return 'IGNORE' if $^O eq 'linux'; # We get zombies on Linux otherwise
+    return 'IGNORE' if $^O =~ /^(?:linux|solaris)$/;
     my $reaper;
     sub {
 	$$ref = wait;
@@ -610,8 +610,9 @@ sub Bind ($) {
 		if ($self->{'debug'}) {
 		    my $from = $self->{'proto'} eq 'unix' ?
 			'Unix socket' : sprintf('%s, port %s',
-						$client->sockhost(),
-						$client->sockport());
+						# SE 19990917: display client data!!
+						$client->peerhost(),
+						$client->peerport());
 		    $self->Debug("Connection from $from");
 		}
 		my $sth = $self->Clone($client);
@@ -626,8 +627,8 @@ sub Bind ($) {
 		if ($self->{'loop-child'}) {
 		    $self->ChildFunc('Loop');
 		} else {
-		$self->Loop();
-	    }
+		    $self->Loop();
+		}
 		$time += $self->{'loop-timeout'};
 	    }
 	}
