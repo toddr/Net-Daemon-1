@@ -251,7 +251,7 @@ sub Child ($$@) {
 
     unlink 'ndtest.prt';
 
-    if ($args =~ /\-\-mode=(?:thread|single)/  &&  $^O =~ /mswin32/i) {
+    if ($args =~ /\-\-mode=(?:ithread|thread|single)/  &&  $^O =~ /mswin32/i) {
 	require Win32;
 	require Win32::Process;
 	my $proc = $_[0];

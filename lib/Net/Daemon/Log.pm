@@ -73,10 +73,16 @@ sub Log ($$$;@) {
     my $logfile = !ref($self) || $self->OpenLog();
 
     my $tid = '';
-    if (ref($self)  &&  $self->{'mode'}  &&  $self->{'mode'} eq 'threads') {
+    if (ref($self)  &&  $self->{'mode'}) {
+	if ($self->{'mode'} eq 'ithreads') {
+	    if (my $sthread = threads->self()) {
+		$tid = $sthread->tid() . ", ";
+	    }
+	} elsif ($self->{'mode'} eq 'threads') {
       if (my $sthread = Thread->self()) {
 	  $tid = $sthread->tid() . ", ";
       }
+    }
     }
     if ($logfile) {
 	my $logtime = $self->LogTime();

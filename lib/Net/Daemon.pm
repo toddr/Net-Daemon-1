@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.37';
+$Net::Daemon::VERSION = '0.38';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -254,7 +254,9 @@ sub new ($$;$) {
     if ($self->{'childs'}) {
 	$self->{'mode'} = 'single';
     } elsif (!defined($self->{'mode'})) {
-	if (eval { require Thread }) {
+	if (eval { require thread }) {
+	    $self->{'mode'} = 'ithreads';
+	} elsif (eval { require Thread }) {
 	    $self->{'mode'} = 'threads';
 	} else {
 	    my $fork = 0;
@@ -274,7 +276,9 @@ sub new ($$;$) {
 	}
     }
 
-    if ($self->{'mode'} eq 'threads') {
+    if ($self->{'mode'} eq 'ithreads') {
+	require threads;
+    } elsif ($self->{'mode'} eq 'threads') {
 	require Thread;
     } elsif ($self->{'mode'} eq 'fork') {
 	# Initialize forking mode ...
@@ -463,6 +467,14 @@ sub ChildFunc {
 	};
 	Thread->new($startfunc, $self, $method, @args)
 	    or die "Failed to create a new thread: $!";
+    } elsif ($self->{'mode'} eq 'ithreads') {
+	my $startfunc = sub {
+	    my $self = shift;
+	    my $method = shift;
+	    $self->$method(@_)
+	};
+	threads->new($startfunc, $self, $method, @args)
+	    or die "Failed to create a new thread: $!";
     } else {
 	my $pid = fork();
 	die "Cannot fork: $!" unless defined $pid;
@@ -563,7 +575,7 @@ sub Bind ($) {
 	$self->Debug("Changing GID to $group");
 	my $gid;
 	if ($group !~ /^\d+$/) {
-	    if (my $gid = getgrnam($group)) {
+	    if (defined(my $gid = getgrnam($group))) {
 		$group = $gid;
 	    } else {
 		$self->Fatal("Cannot determine gid of $group: $!");
@@ -575,7 +587,7 @@ sub Bind ($) {
 	$self->Debug("Changing UID to $user");
 	my $uid;
 	if ($user !~ /^\d+$/) {
-	    if (my $uid = getpwnam($user)) {
+	    if (defined(my $uid = getpwnam($user))) {
 		$user = $uid;
 	    } else {
 		$self->Fatal("Cannot determine uid of $user: $!");
@@ -666,6 +678,9 @@ sub Bind ($) {
 		my $sth = $self->Clone($client);
 		$self->Debug("Child clone: $sth\n");
 		$sth->ChildFunc('HandleChild') if $sth;
+		if ($self->{'mode'} eq 'fork') {
+		    close($client);
+		}
 	    }
 	}
 	if ($time) {
@@ -710,13 +725,6 @@ Net::Daemon - Perl extension for portable daemons
     # This function does the real work; it is invoked whenever a
     # new connection is made.
   }
-
-
-=head1 WARNING
-
-THIS IS ALPHA SOFTWARE. It is *only* 'Alpha' because the interface (API)
-is not finalised. The Alpha status does not reflect code quality or
-stability.
 
 
 =head1 DESCRIPTION
@@ -870,7 +878,8 @@ the environment.
 If you are running Perl 5.005 and did compile it for threads, then
 the server will create a new thread for each connection. The thread
 will execute the server's Run() method and then terminate. This mode
-is the default, you can force it with "--mode=threads".
+is the default, you can force it with "--mode=ithreads" or
+"--mode=threads".
 
 If threads are not available, but you have a working fork(), then the
 server will behave similar by creating a new process for each connection.
@@ -1107,7 +1116,7 @@ All methods are working with lexically scoped data and handle data
 only, the exception being the OpenLog method which is invoked before
 threading starts. Thus you are safe as long as you don't share
 handles between threads. I strongly recommend that your application
-behaves similar.
+behaves similar. (This doesn't apply to mode 'ithreads'.)
 
 
 
