@@ -57,7 +57,8 @@ sub OpenLog($) {
 	if ($@) {
 	    die "Cannot open Syslog: $@";
 	}
-	if (defined(&Sys::Syslog::setlogsock)  &&
+	if ($^O ne 'solaris'  &&
+	    defined(&Sys::Syslog::setlogsock)  &&
 	    defined(&Sys::Syslog::_PATH_LOG)) {
 	    &Sys::Syslog::setlogsock('unix');
 	}

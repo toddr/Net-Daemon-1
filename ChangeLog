@@ -1,3 +1,8 @@
+2000-10-05  Jochen Wiedmann  <joe@ispsoft.de> (0.30)
+
+	* lib/Net/Daemon.pm: Fixed problem with setlogsock on Solaris. My
+	  thanks to Wolfgang Friebel <friebel@ifh.de>.
+
 1999-11-14  Jochen Wiedmann  <joe@ispsoft.de> (0.29)
 
 	* lib/Net/Daemon/Log.pm (Fatal): Now displaying the callers
