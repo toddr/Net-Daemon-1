@@ -13,7 +13,7 @@ my $numTests = 5;
 
 my($handle, $port) = Net::Daemon::Test->Child($numTests,
 					      $^X, '-Iblib/lib', '-Iblib/arch',
-					      't/server', '--mode=fork',
+					      't/server', '--mode=single',
 					      '--timeout', 60);
 
 print "Making first connection to port $port...\n";

@@ -18,8 +18,8 @@ if (!eval { require Thread; my $t = Thread->new(sub { }) }) {
     exit 0;
 }
 
-my($handle, $port) = Net::Daemon::Test->Child($numTests, $^X, 't/server',
-					      '--timeout', 20, '--noforking');
+my($handle, $port) = Net::Daemon::Test->Child
+    ($numTests, $^X, 't/server', '--timeout', 20, '--mode=threads');
 
 
 print "Making first connection to port $port...\n";
