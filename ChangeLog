@@ -1,3 +1,13 @@
+1999-09-26  Jochen Wiedmann  <joe@ispsoft.de> (0.28)
+
+	* lib/Net/Daemon/Log.pm: Added LogTime method. 
+          Stefan Engel <St_Engel@gmx.net>
+	* lib/Net/Daemon.pm: Fixed use of $socket->sockhost() instead
+	  of $socket->peerhost() when logging the clients IP address.
+          Stefan Engel <St_Engel@gmx.net>
+	* lib/Net/Daemon.pm: Made 'IGNORE' the default for $SIG{'CHLD'}
+	  on Solaris. Stefan Engel <St_Engel@gmx.net>
+
 1999-08-11  Jochen Wiedmann  <joe@ispsoft.de> (0.27)
 
 	* lib/Net/Daemon.pm (Bind): Under Linux the CHLD signal is now

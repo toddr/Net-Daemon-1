@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: Log.pm,v 1.2 1999/08/12 14:28:57 joe Exp $
+#   $Id: Log.pm,v 1.3 1999/09/26 14:50:13 joe Exp $
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -75,10 +75,11 @@ sub Log ($$$;@) {
 	       ($self->{'mode'} eq 'threads'))
 	? (Thread->self->tid() . ", ") : '';
     if ($logfile) {
-	if (ref($logfile) || (lc $logfile) eq 'stderr') {
-	    $logfile->print(sprintf("$level, $tid$format\n", @args));
+	my $logtime = $self->LogTime();
+	if (ref($logfile)) {
+	    $logfile->print(sprintf("$logtime $level, $tid$format\n", @args));
 	} else {
-	    printf STDERR ("$level, $tid$format\n", @args);
+	    printf STDERR ("$logtime $level, $tid$format\n", @args);
 	}
     } elsif (my $eventLog = $self->{'eventLog'}) {
 	my($type, $category);
@@ -123,6 +124,9 @@ sub Fatal ($$;@) {
     $self->Log('err', $msg);
     die $msg;
 }
+
+sub LogTime { scalar(localtime) }
+
 
 1;
 
