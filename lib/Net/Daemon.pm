@@ -31,7 +31,7 @@ require Net::Daemon::Log;
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.20';
+$Net::Daemon::VERSION = '0.21';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -231,7 +231,7 @@ sub new ($$;$) {
     while (my($var, $val) = each %$options) {
 	$self->{$var} = $val;
     }
-    
+
     if (!defined($self->{'mode'})) {
 	if (eval { require Thread }) {
 	    $self->{'mode'} = 'threads';
@@ -401,14 +401,18 @@ sub Done ($;$) {
 #
 ############################################################################
 
-sub _Reaper () {
-    my $pid = wait;
-    $SIG{'CHLD'} = \&_Reaper;
-}
 
 sub Bind ($) {
     my $self = shift;
     my $fh;
+    my $child_pid;
+
+    my $reaper;
+    $reaper = sub {
+	$child_pid = wait;
+	$SIG{'CHLD'} = $reaper;
+    } if $self->{'mode'} eq 'fork';
+    $SIG{'CHLD'} = $reaper;
 
     if (!$self->{'socket'}) {
 	$self->{'proto'} ||= ($self->{'localpath'}) ? 'unix' : 'tcp';
@@ -469,27 +473,22 @@ sub Bind ($) {
     }
 
     my($client);
-    while (1) {
-	if ($self->Done()) {
-	    $self->Log('notice', "%s server terminating", ref($self));
-	    return;
-	}
+    while (!$self->Done()) {
+	undef $child_pid;
 	my $client = $self->{'socket'}->accept();
 	if (!$client) {
+	    next if $child_pid;
 	    $self->Fatal("%s server failed to accept: %s",
 			 ref($self), $self->{'socket'}->error() || $!);
-	} else {
-	    my $from = $self->{'proto'} eq 'unix' ?
-		'Unix socket' : sprintf('%s, port %s',
-					$client->sockhost(),
-					$client->sockport());
-	    $self->Debug("Connection from $from");
 	}
+	my $from = $self->{'proto'} eq 'unix' ?
+	    'Unix socket' : sprintf('%s, port %s',
+				    $client->sockhost(),
+				    $client->sockport());
+	$self->Debug("Connection from $from");
 	my $sth = $self->Clone($client);
 	$self->Debug("Child clone: $sth\n");
-	if (!$sth) {
-	    $client = undef;
-	} else {
+	if ($sth) {
 	    my($startFunc) = sub {
 		my $self = shift;
 		$self->Debug("New child starting ($self).");
@@ -515,7 +514,7 @@ sub Bind ($) {
 		    $self->Error("Failed to create new thread: $!");
 		}
 	    } else {
-		$SIG{'CHLD'} = \&_Reaper;
+		$SIG{'CHLD'} = $reaper;
 		my $pid = fork();
 		if (!defined($pid)) {
 		    $self->Error("Cannot fork: %s", $!);
@@ -525,9 +524,10 @@ sub Bind ($) {
 		}
 	    }
 	}
-	$sth = undef;    # Force calling destructors
-	$client = undef; 
+	undef $sth;    # Force calling destructors
+	undef $client;
     }
+    $self->Log('notice', "%s server terminating", ref($self));
 }
 
 sub Close {
