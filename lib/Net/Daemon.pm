@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.36';
+$Net::Daemon::VERSION = '0.37';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -650,7 +650,7 @@ sub Bind ($) {
 	    if (!$client) {
 		if (!$child_pid  and
 		    ($! != POSIX::EINTR() or !$self->{'catchint'})) {
-		    $self->Fatal("%s server failed to accept: %s",
+		    $self->Error("%s server failed to accept: %s",
 				 ref($self), $self->{'socket'}->error() || $!);
 		}
 	    } else {
