@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: Daemon.pm,v 1.2 1999/02/22 23:44:07 joe Exp $
+#   $Id: Daemon.pm,v 1.3 1999/04/09 19:56:21 joe Exp $
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -31,7 +31,7 @@ require Net::Daemon::Log;
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.17';
+$Net::Daemon::VERSION = '0.20';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -77,6 +77,9 @@ sub Options ($) {
       'localaddr' => { 'template' => 'localaddr=s',
 		       'description' => '--localaddr <ip>        '
 			   . 'IP number to bind to; defaults to INADDR_ANY' },
+      'localpath' => { 'template' => 'localpath=s',
+		       'description' => '--localpath <path>      '
+		           . 'UNIX socket domain path to bind to' },
       'localport' => { 'template' => 'localport=s',
 		       'description' => '--localport <port>      '
 			   . 'Port number to bind to' },
@@ -89,6 +92,9 @@ sub Options ($) {
       'pidfile' => { 'template' => 'pidfile=s',
 		     'description' => '--pidfile <file>        '
 			 . 'Use <file> as PID file' },
+      'proto' => { 'template' => 'proto=s',
+		   'description' => '--proto <protocol>        '
+		   . 'transport layer protocol: tcp (default) or unix' },
       'user' => { 'template' => 'user=s',
 		  'description' => '--user <user>           '
 		      . 'Change uid to given user after binding to port.' },
@@ -283,11 +289,22 @@ sub Accept ($) {
     my $self = shift;
     my $socket = $self->{'socket'};
     my $clients = $self->{'clients'};
+    my $from = $self->{'proto'} eq 'unix' ?
+	"Unix socket" : sprintf("%s, port %s",
+				$socket->sockhost(), $socket->sockport());
 
     # Host based authorization
     if ($self->{'clients'}) {
-	my ($name, $aliases, $addrtype, $length, @addrs) =
-	    gethostbyaddr($socket->peeraddr(), Socket::AF_INET());
+	my ($name, $aliases, $addrtype, $length, @addrs);
+	if ($self->{'proto'} eq 'unix') {
+	    ($name, $aliases, $addrtype, $length, @addrs) =
+		('localhost', '', Socket::AF_INET(),
+		 length(Socket::IN_ADDR_ANY()),
+			Socket::inet_aton('127.0.0.1'));
+	} else {
+	    ($name, $aliases, $addrtype, $length, @addrs) =
+		gethostbyaddr($socket->peeraddr(), Socket::AF_INET());
+	}
 	my @patterns = @addrs ?
 	    map { Socket::inet_ntoa($_) } @addrs  :
 	    $socket->peerhost();
@@ -321,15 +338,13 @@ sub Accept ($) {
 	}
 
 	if (!$found  ||  !$found->{'accept'}) {
-	    $self->Error("Access not permitted from %s, port %s",
-			 $socket->sockhost(), $socket->sockport());
+	    $self->Error("Access not permitted from $from");
 	    return 0;
 	}
 	$self->{'client'} = $found;
     }
 
-    $self->Debug("Accepting client from %s, port %s",
-		 $socket->sockhost(), $socket->sockport());
+    $self->Debug("Accepting client from $from");
     1;
 }
 
@@ -395,14 +410,30 @@ sub Bind ($) {
     my $self = shift;
     my $fh;
 
-    if (!$self->{'socket'}  &&
-	!($self->{'socket'} = IO::Socket::INET->new
-	  ( 'LocalAddr' => $self->{'localaddr'},
-	    'LocalPort' => $self->{'localport'},
-	    'Proto'     => $self->{'proto'} || 'tcp',
-	    'Listen'    => $self->{'listen'} || 10,
-	    'Reuse'     => 1))) {
-	$self->Fatal("Cannot create socket: $!");
+    if (!$self->{'socket'}) {
+	$self->{'proto'} ||= ($self->{'localpath'}) ? 'unix' : 'tcp';
+
+	if ($self->{'proto'} eq 'unix') {
+	    my $path = $self->{'localpath'}
+		or $self->Fatal('Missing option: localpath');
+	    unlink $path;
+	    $self->Fatal("Can't remove stale Unix socket ($path): $!")
+		if -e $path;
+	    my $old_umask = umask 0;
+	    $self->{'socket'} =
+		IO::Socket::UNIX->new('Local' => $path,
+				      'Listen' => $self->{'listen'} || 10)
+		      or $self->Fatal("Cannot create Unix socket $path: $!");
+	    umask $old_umask;
+	} else {
+	    $self->{'socket'} = IO::Socket::INET->new
+		( 'LocalAddr' => $self->{'localaddr'},
+		  'LocalPort' => $self->{'localport'},
+		  'Proto'     => $self->{'proto'} || 'tcp',
+		  'Listen'    => $self->{'listen'} || 10,
+		  'Reuse'     => 1)
+		    or $self->Fatal("Cannot create socket: $!");
+	}
     }
     $self->Log('notice', "Server starting");
 
@@ -448,8 +479,11 @@ sub Bind ($) {
 	    $self->Fatal("%s server failed to accept: %s",
 			 ref($self), $self->{'socket'}->error() || $!);
 	} else {
-	    $self->Debug("Connection from %s, port %s\n",
-			 $client->sockhost(), $client->sockport());
+	    my $from = $self->{'proto'} eq 'unix' ?
+		'Unix socket' : sprintf('%s, port %s',
+					$client->sockhost(),
+					$client->sockport());
+	    $self->Debug("Connection from $from");
 	}
 	my $sth = $self->Clone($client);
 	$self->Debug("Child clone: $sth\n");
@@ -471,6 +505,7 @@ sub Bind ($) {
 		    $self->Error("Child died: $@");
 		}
 		$self->Debug("Child terminating.");
+		$self->Close();
 	    };
 	    if ($self->{'mode'} eq 'single') {
 		&$startFunc($sth);
@@ -493,6 +528,11 @@ sub Bind ($) {
 	$sth = undef;    # Force calling destructors
 	$client = undef; 
     }
+}
+
+sub Close {
+    my $socket = shift->{'socket'};
+    $socket->close() if $socket;
 }
 
 
@@ -616,6 +656,13 @@ By default a daemon is listening to any IP number that a machine
 has. This attribute allows to restrict the server to the given
 IP number.
 
+=item I<localpath> (B<--localpath=path>)
+
+If you want to restrict your server to local services only, you'll
+prefer using Unix sockets, if available. In that case you can use
+this option for setting the path of the Unix socket being created.
+This option implies B<--proto=unix>.
+
 =item I<localport> (B<--localport=port>)
 
 This attribute sets the port on which the daemon is listening. It
@@ -664,6 +711,11 @@ don't have a parent, thus this attribute is not set.
 
 (UNIX only) If this option is present, a PID file will be created at the
 given location.
+
+=item I<proto> (B<--proto=proto>)
+
+The transport layer to use, by default I<tcp> or I<unix> for a Unix
+socket. It is not yet possible to combine both.
 
 =item I<socket>
 

@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: Test.pm,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#   $Id: Test.pm,v 1.2 1999/04/09 19:56:23 joe Exp $
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -159,21 +159,35 @@ hope, one of these will succeed. :-)
 sub Bind ($) {
     # First try: Pass unmodified options to Net::Daemon::Bind
     my $self = shift;
-    my @socket_args =
-	( 'LocalAddr' => $self->{'localaddr'},
-	  'LocalPort' => $self->{'localport'},
-	  'Proto' => $self->{'proto'} || 'tcp',
-	  'Listen' => $self->{'listen'} || 10,
-	  'Reuse' => 1
-	  );
-    my $socket = eval { IO::Socket::INET->new(@socket_args) };
-    my $port = 30049;
-    while (!$socket  &&  $port++ < 30060) {
-	$socket = eval { IO::Socket::INET->new(@socket_args,
-					       'LocalPort' => $port) };
+    my($port, $socket);
+    $self->{'proto'} ||= $self->{'localpath'} ? 'unix' : 'tcp';
+    if ($self->{'proto'} eq 'unix') {
+        $port = $self->{'localpath'} || die "Missing option: localpath";
+        $socket = eval {
+            IO::Socket::UNIX->new('Local' => $port,
+                                  'Listen' => $self->{'listen'} || 10);
+        }
+    } else {
+        my @socket_args =
+	    ( 'LocalAddr' => $self->{'localaddr'},
+	      'LocalPort' => $self->{'localport'},
+	      'Proto' => $self->{'proto'} || 'tcp',
+	      'Listen' => $self->{'listen'} || 10,
+	      'Reuse' => 1
+	    );
+        $socket = eval { IO::Socket::INET->new(@socket_args) };
+        if ($socket) {
+	    $port = $socket->sockport();
+        } else {
+            $port = 30049;
+            while (!$socket  &&  $port++ < 30060) {
+	        $socket = eval { IO::Socket::INET->new(@socket_args,
+	       			                       'LocalPort' => $port) };
+            }
+        }
     }
     if (!$socket) {
-	die "Cannot create socket: $!";
+	die "Cannot create socket: " . ($@ || $!);
     }
 
     # Create the "ndtest.prt" file so that the child knows to what
@@ -181,13 +195,12 @@ sub Bind ($) {
     require Symbol;
     my $fh = Symbol::gensym();
     if (!open($fh, ">ndtest.prt")  ||
-	!(print $fh $socket->sockport())  ||
+	!(print $fh $port)  ||
 	!close($fh)) {
 	die "Error while creating 'ndtest.prt': $!";
     }
     $self->{'socket'} = $socket;
 
-    
     if (my $timeout = $self->{'timeout'}) {
 	eval { alarm $timeout };
     }
