@@ -23,15 +23,16 @@
 require 5.004;
 use strict;
 
-require Getopt::Long;
-require IO::Socket;
-require Config;
-require Net::Daemon::Log;
+use Getopt::Long ();
+use Symbol ();
+use IO::Socket ();
+use Config ();
+use Net::Daemon::Log ();
 
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.21';
+$Net::Daemon::VERSION = '0.22';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -470,6 +471,15 @@ sub Bind ($) {
 	    }
 	}
 	$< = ($> = $user);
+    }
+
+    if (my $pidfile = $self->{'pidfile'}) {
+	$self->Debug("Writing PID to $pidfile");
+	my $fh = Symbol::gensym();
+	$self->Fatal("Cannot write to $pidfile: $!")
+	    unless (open (OUT, ">$pidfile")
+		    and (print OUT "$$\n")
+		    and close(OUT));
     }
 
     my($client);
