@@ -1,3 +1,8 @@
+2000-06-26  Jochen Wiedmann  <joe@ispsoft.de> (0.31)
+
+	* lib/Net/Daemon/Log.pm (OpenLog): Same thing for FreeBSD. Thanks
+	  to Kurt Jaeger <pi@lf.net>.
+
 2000-10-05  Jochen Wiedmann  <joe@ispsoft.de> (0.30)
 
 	* lib/Net/Daemon.pm: Fixed problem with setlogsock on Solaris. My
