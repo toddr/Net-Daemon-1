@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: Daemon.pm,v 1.3 1999/04/09 19:56:21 joe Exp $
+#   $Id: Daemon.pm,v 1.2 1999/08/12 14:28:55 joe Exp $
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -33,11 +33,12 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.24';
+$Net::Daemon::VERSION = '0.27';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
-#   Regexps aren't thread safe, as of 5.00502 :-(
+#   Regexps aren't thread safe, as of 5.00502 :-( (See the test script
+#   regexp-threads.)
 #
 $Net::Daemon::RegExpLock = 1;
 
@@ -92,8 +93,14 @@ sub Options ($) {
 		       'description' => '--localport <port>      '
 			   . 'Port number to bind to' },
       'logfile' => { 'template' => 'logfile=s',
-		       'description' => '--logfile <file>        '
-			   . 'Force logging to <file>' },
+		     'description' => '--logfile <file>        '
+		         . 'Force logging to <file>' },
+      'loop-child' => { 'template' => 'loop-child',
+		       'description' => '--loop-child            '
+			      . 'Create a child process for loops' },
+      'loop-timeout' => { 'template' => 'loop-timeout=f',
+		       'description' => '--loop-timeout <secs>   '
+			      . 'Looping mode, <secs> seconds per loop' },
       'mode' => { 'template' => 'mode=s',
 		  'description' => '--mode <mode>           '
 		      . 'Operation mode (threads, fork or single)' },
@@ -392,8 +399,64 @@ sub Run ($) {
 
 sub Done ($;$) {
     my $self = shift;
-    if (@_) { $self->{'done'} = shift }
+    $self->{'done'} = shift if @_;
     $self->{'done'}
+}
+
+
+############################################################################
+#
+#   Name:    Loop (Instance method)
+#
+#   Purpose: If $self->{'loop-timeout'} option is set, then this method
+#            will be called every "loop-timeout" seconds.
+#
+#   Inputs:  $self - Server instance
+#
+#   Result:  Nothing; aborts in case of trouble. Note, that this is *not*
+#            trapped and forces the server to exit.
+#
+############################################################################
+
+sub Loop {
+}
+
+
+############################################################################
+#
+#   Name:    ChildFunc (Instance method)
+#
+#   Purpose: If possible, spawn a child process which calls a given
+#	     method. In server mode single the method is called
+#            directly.
+#
+#   Inputs:  $self - Instance
+#            $method - Method name
+#            @args - Method arguments
+#
+#   Returns: Nothing; aborts in case of problems.
+#
+############################################################################
+
+sub ChildFunc {
+    my($self, $method, @args) = @_;
+    if ($self->{'mode'} eq 'single') {
+	$self->$method(@args);
+    } elsif ($self->{'mode'} eq 'threads') {
+	my $startfunc = sub {
+	    my $self = shift;
+	    my $method = shift;
+	    $self->$method(@_)
+	};
+	Thread->new($startfunc, $self, $method, @args)
+	    or die "Failed to create a new thread: $!";
+    } else {
+	my $pid = fork();
+	die "Cannot fork: $!" unless defined $pid;
+	return if $pid;        # Parent
+	$self->$method(@args); # Child
+	exit(0);
+    }
 }
 
 
@@ -411,17 +474,40 @@ sub Done ($;$) {
 #
 ############################################################################
 
+sub HandleChild {
+    my $self = shift;
+    $self->Debug("New child starting ($self).");
+    eval {
+	if (!$self->Accept()) {
+	    $self->Error('Refusing client');
+	} else {
+	    $self->Debug('Accepting client');
+	    $self->Run();
+	}
+    };
+    $self->Error("Child died: $@") if $@;
+    $self->Debug("Child terminating.");
+    $self->Close();
+};
+
+sub SigChildHandler {
+    my $self = shift; my $ref = shift;
+    return undef if $self->{'mode'} ne 'fork'; # Don't care for childs.
+    return 'IGNORE' if $^O eq 'linux'; # We get zombies on Linux otherwise
+    my $reaper;
+    sub {
+	$$ref = wait;
+	$SIG{'CHLD'} = $reaper;
+    };
+}
+
 sub Bind ($) {
     my $self = shift;
     my $fh;
     my $child_pid;
 
-    my $reaper;
-    $reaper = sub {
-	$child_pid = wait;
-	$SIG{'CHLD'} = $reaper;
-    } if $self->{'mode'} eq 'fork';
-    $SIG{'CHLD'} = $reaper;
+    my $reaper = $self->SigChildHandler(\$child_pid);
+    $SIG{'CHLD'} = $reaper if $reaper;
 
     if (!$self->{'socket'}) {
 	$self->{'proto'} ||= ($self->{'localpath'}) ? 'unix' : 'tcp';
@@ -490,61 +576,61 @@ sub Bind ($) {
 	$< = ($> = $user);
     }
 
-    my($client);
+    my $time = $self->{'loop-timeout'} ?
+	(time() + $self->{'loop-timeout'}) : 0;
+
+    my $client;
     while (!$self->Done()) {
 	undef $child_pid;
-	my $client = $self->{'socket'}->accept();
-	if (!$client) {
-	    next if $child_pid;
-	    next if $! == POSIX::EINTR() and $self->{'catchint'};
-	    $self->Fatal("%s server failed to accept: %s",
-			 ref($self), $self->{'socket'}->error() || $!);
+	my $rin = '';
+	vec($rin,$self->{'socket'}->fileno(),1) = 1;
+	my($rout, $t);
+	if ($time) {
+	    my $tm = time();
+	    $t = $time - $tm;
+	    $t = 0 if $t < 0;
+	    $self->Debug("Loop time: time=$time now=$tm, t=$t");
 	}
-	my $from = $self->{'proto'} eq 'unix' ?
-	    'Unix socket' : sprintf('%s, port %s',
-				    $client->sockhost(),
-				    $client->sockport());
-	$self->Debug("Connection from $from");
-	my $sth = $self->Clone($client);
-	$self->Debug("Child clone: $sth\n");
-	if ($sth) {
-	    my($startFunc) = sub {
-		my $self = shift;
-		$self->Debug("New child starting ($self).");
-		eval {
-		    if (!$self->Accept()) {
-			$self->Error('Refusing client');
-		    } else {
-			$self->Debug('Accepting client');
-			$self->Run();
-		    }
-		};
-		if ($@) {
-		    $self->Error("Child died: $@");
-		}
-		$self->Debug("Child terminating.");
-		$self->Close();
-	    };
-	    if ($self->{'mode'} eq 'single') {
-		&$startFunc($sth);
-	    } elsif ($self->{'mode'} eq 'threads') {
-		my $tid = Thread->new($startFunc, $sth);
-		if(!$tid) {
-		    $self->Error("Failed to create new thread: $!");
+	my($nfound) = select($rout=$rin, undef, undef, $t);
+	if ($nfound < 0) {
+	    if (!$child_pid  and
+		($! != POSIX::EINTR() or !$self->{'catchint'})) {
+		$self->Fatal("%s server failed to select(): %s",
+			     ref($self), $self->{'socket'}->error() || $!);
+	    }
+	} elsif ($nfound) {
+	    my $client = $self->{'socket'}->accept();
+	    if (!$client) {
+		if (!$child_pid  and
+		    ($! != POSIX::EINTR() or !$self->{'catchint'})) {
+		    $self->Fatal("%s server failed to accept: %s",
+				 ref($self), $self->{'socket'}->error() || $!);
 		}
 	    } else {
-		$SIG{'CHLD'} = $reaper;
-		my $pid = fork();
-		if (!defined($pid)) {
-		    $self->Error("Cannot fork: %s", $!);
-		} elsif (!$pid) {
-		    &$startFunc($sth);
-		    exit(0);
+		if ($self->{'debug'}) {
+		    my $from = $self->{'proto'} eq 'unix' ?
+			'Unix socket' : sprintf('%s, port %s',
+						$client->sockhost(),
+						$client->sockport());
+		    $self->Debug("Connection from $from");
 		}
+		my $sth = $self->Clone($client);
+		$self->Debug("Child clone: $sth\n");
+		$sth->ChildFunc('HandleChild') if $sth;
 	    }
 	}
-	undef $sth;    # Force calling destructors
-	undef $client;
+	if ($time) {
+	    my $t = time();
+	    if ($t >= $time) {
+		$time = $t;
+		if ($self->{'loop-child'}) {
+		    $self->ChildFunc('Loop');
+		} else {
+		$self->Loop();
+	    }
+		$time += $self->{'loop-timeout'};
+	    }
+	}
     }
     $self->Log('notice', "%s server terminating", ref($self));
 }
@@ -699,10 +785,33 @@ must be given somehow, as there's no default.
 
 =item I<logfile> (B<--logfile=file>)
 
-Be default logging messages will be written to the syslog (Unix) or
+By default logging messages will be written to the syslog (Unix) or
 to the event log (Windows NT). On other operating systems you need to
 specify a log file. The special value "STDERR" forces logging to
 stderr.
+
+=item I<loop-child> (B<--loop-child>)
+
+This option forces creation of a new child for loops. (See the
+I<loop-timeout> option.) By default the loops are serialized.
+
+=item I<loop-timeout> (B<--loop-timeout=secs>)
+
+Some servers need to take an action from time to time. For example the
+Net::Daemon::Spooler attempts to empty its spooling queue every 5
+minutes. If this option is set to a positive value (zero being the
+default), then the server will call its Loop method every "loop-timeout"
+seconds.
+
+Don't trust too much on the precision of the interval: It depends on
+a number of factors, in particular the execution time of the Loop()
+method. The loop is implemented by using the I<select> function. If
+you need an exact interval, you should better try to use the alarm()
+function and a signal handler. (And don't forget to look at the
+I<catchint> option!)
+
+It is recommended to use the I<loop-child> option in conjunction with
+I<loop-timeout>.
 
 =item I<mode> (B<--mode=modename>)
 

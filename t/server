@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: server,v 1.2 1999/04/09 19:56:24 joe Exp $
+#   $Id: server,v 1.2 1999/08/12 14:28:59 joe Exp $
 #
 #   This example implements a very simple server, let's call it
 #   multiplier. When a client connects, it waits for decimal numbers
@@ -38,6 +38,19 @@ sub GetLine {
 sub Print {
     my $sock = shift;
     $sock->print(@_) && $sock->flush();
+}
+
+sub Loop {
+    my $self = shift;
+    if ($self->{'loop-timeout'}) {
+	my $count = $self->{'loop-count'} || 0;
+	if (($self->{'loop-count'} = ++$count) == 10) {
+	    $self->Done();
+	    open(COUNT, ">ndtest.cnt");
+	    print COUNT "10\n";
+	    close(COUNT);
+	}
+    }
 }
 
 sub Run ($) {
@@ -84,5 +97,7 @@ my $server = Multiplier->new({ 'pidfile' => 'none'
 			       }, \@ARGV);
 
 eval { $server->Bind() };
+print STDERR "Unexpected return from Bind().\n"
+    if (!$server->Done());
 
 print STDERR "Server died: $@\n" if $@;

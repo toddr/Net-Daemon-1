@@ -1,14 +1,14 @@
 # -*- perl -*-
 #
-#   $Id: unix.t,v 1.1 1999/04/09 19:56:24 joe Exp $
+#   $Id: unix.t,v 1.2 1999/08/12 14:28:59 joe Exp $
 #
 
 require 5.004;
 use strict;
 
-require IO::Socket;
-require Config;
-require Net::Daemon::Test;
+use IO::Socket ();
+use Config ();
+use Net::Daemon::Test ();
 
 my $numTests = 5;
 

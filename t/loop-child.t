@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: single.t,v 1.2 1999/08/12 14:28:59 joe Exp $
+#   $Id: loop-child.t,v 1.1 1999/08/12 14:28:59 joe Exp $
 #
 
 require 5.004;
@@ -10,18 +10,19 @@ use IO::Socket ();
 use Config ();
 use Net::Daemon::Test ();
 
-my $numTests = 5;
+my $numTests = 6;
 
 
 my($handle, $port);
 if (@ARGV) {
-    $port = shift @ARGV;
+    $port = shift;
 } else {
     ($handle, $port) =
 	Net::Daemon::Test->Child($numTests,
-					      $^X, '-Iblib/lib', '-Iblib/arch',
-					      't/server', '--mode=single',
-					      '--timeout', 60);
+				 $^X, '-Iblib/lib', '-Iblib/arch',
+				 't/server', '--mode=single',
+				 '--loop-timeout=2', '--loop-child',
+				 '--debug', '--timeout', 60);    
 }
 
 print "Making first connection to port $port...\n";
@@ -46,7 +47,20 @@ for (my $i = 0;  $ok  &&  $i < 20;  $i++) {
 printf("%s 4\n", $ok ? "ok" : "not ok");
 printf("%s 5\n", $fh->close() ? "ok" : "not ok");
 
+$ok = 0;
+for (my $i = 0;  $i < 30;  $i++) {
+    my $num;
+    if (open(CNT, "<ndtest.cnt") and
+	defined($num = <CNT>)  and
+	$num eq "10\n") {
+	$ok = 1;
+	last;
+    }
+    sleep 1;
+}
+printf("%s 6\n", $ok ? "ok" : "not ok");
+
 END {
     if ($handle) { $handle->Terminate() }
-    if (-f "ndtest.prt") { unlink "ndtest.prt" }
+    unlink "ndtest.prt", "ndtest.cnt";
 }

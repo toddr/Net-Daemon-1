@@ -4,11 +4,11 @@
 require 5.004;
 use strict;
 
-require IO::Socket;
-require Config;
-require Net::Daemon::Test;
-require Fcntl;
-require Config;
+use IO::Socket ();
+use Config ();
+use Net::Daemon::Test ();
+use Fcntl ();
+use Config ();
 
 
 $| = 1;
@@ -96,7 +96,7 @@ sub ShowResults {
 my %childs;
 sub CatchChild {
     my $pid = wait;
-    if (defined($childs{$pid})) {
+    if (exists $childs{$pid}) {
 	delete $childs{$pid};
 	ShowResults() if (keys(%childs) == 0);
     }

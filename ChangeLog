@@ -1,3 +1,22 @@
+1999-08-11  Jochen Wiedmann  <joe@ispsoft.de> (0.27)
+
+	* lib/Net/Daemon.pm (Bind): Under Linux the CHLD signal is now
+	  ignored, due to a suggestion of Gaal Yahas <gaal@forum2.org>.
+	  Required because zombies have been created under heavy load.
+
+1999-08-11  Jochen Wiedmann <joe@ispsoft.de> (0.26)
+
+	* lib/Net/Daemon/Test.pm (Child): Fixed handling of "." in
+	  directory names. Thanks to Tom Lowery, <tlowery@dsioj.dla.mil>.
+	* t/threadm.t (MyChild): Use of alarm() now depends on a working
+	  alarm() function. (Not working under Win32.) Thanks to Tom
+	  Lowery, <tlowery@dsioj.dla.mil>
+
+1999-07-24  Jochen Wiedmann  <joe@ispsoft.de> (0.25)
+
+	* lib/Net/Daemon.pm: Added the Loop method and the loop-timeout
+	  option.
+
 1999-07-12  Jochen Wiedmann  <joe@ispsoft.de> (0.24)
 
 	* lib/Net/Daemon.pm (Bind): Moved PID file creation before
