@@ -98,6 +98,12 @@ DESCRIPTION
         has. This attribute allows to restrict the server to the given IP
         number.
 
+    *localpath* (--localpath=path)
+        If you want to restrict your server to local services only, you'll
+        prefer using Unix sockets, if available. In that case you can use
+        this option for setting the path of the Unix socket being created.
+        This option implies --proto=unix.
+
     *localport* (--localport=port)
         This attribute sets the port on which the daemon is listening. It
         must be given somehow, as there's no default.
@@ -141,6 +147,10 @@ DESCRIPTION
     *pidfile* (--pidfile=file)
         (UNIX only) If this option is present, a PID file will be created at
         the given location.
+
+    *proto* (--proto=proto)
+        The transport layer to use, by default *tcp* or *unix* for a Unix
+        socket. It is not yet possible to combine both.
 
     *socket*
         The socket that is connected to the client; passed as $client

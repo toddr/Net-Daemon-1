@@ -10,7 +10,8 @@ t/base.t		Base test
 t/config.t		Test of config file handling and access control
 t/fork.t		Test of a forking server
 t/forkm.t		Test of a forking server with multiple clients
+t/server		Script used by the server tests
 t/single.t		Test of a single-mode server
 t/thread.t		Test of a multithreaded server
 t/threadm.t		Test of a multithreaded server with multiple clients
-t/server		Script used by fork.t and thread.t
+t/unix.t		Test for Unix sockets
