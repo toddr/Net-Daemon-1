@@ -55,6 +55,9 @@ sub Loop {
 
 sub Run ($) {
     my $self = shift;
+    sleep 1 if $self->{'mode'} eq "fork";
+      # Waiting one second sometimes helps the parent to catch
+      # children nicely, if they die immediately
     my($line, $sock);
     $sock = $self->{'socket'};
     eval {

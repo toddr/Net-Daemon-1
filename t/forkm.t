@@ -3,23 +3,30 @@
 
 require 5.004;
 use strict;
-
 use IO::Socket ();
 use Config ();
 use Net::Daemon::Test ();
 use Fcntl ();
 use Config ();
 
+my $ok;
+eval {
+  if ($^O ne "MSWin32") {
+    my $pid = fork();
+    if (defined($pid)) {
+      if (!$pid) { exit 0; } # Child
+    }
+    $ok = 1;
+  }
+};
+if (!$ok) {
+  print "1..0\n";
+  exit;
+}
+
 
 $| = 1;
 $^W = 1;
-
-
-if ($Config::Config{'d_fork'}  ne 'define'  ||
-    $Config::Config{'d_fork'}  ne 'define') {  # -w
-    print "1..0\n";
-    exit 0;
-}
 
 
 my($handle, $port);
