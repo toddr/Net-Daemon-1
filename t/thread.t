@@ -1,5 +1,7 @@
 # -*- perl -*-
 #
+#   $Id: thread.t,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#
 
 require 5.004;
 use strict;
@@ -31,17 +33,24 @@ print "Making second connection to port $port...\n";
 $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
 			    'PeerPort' => $port);
 printf("%s 3\n", $fh ? "ok" : "not ok");
-my($ok) = $fh ? 1 : 0;
-for (my $i = 0;  $ok  &&  $i < 20;  $i++) {
-    print "Writing number: $i\n";
-    if (!$fh->print("$i\n")  ||  !$fh->flush()) { $ok = 0; last; }
-    print "Written.\n";
-    my($line) = $fh->getline();
-    print "line = ", (defined($line) ? $line : "undef"), "\n";
-    if (!defined($line)) { $ok = 0;  last; }
-    if ($line !~ /(\d+)/  ||  $1 != $i*2) { $ok = 0;  last; }
+eval {
+    for (my $i = 0;  $i < 20;  $i++) {
+	if (!$fh->print("$i\n")  ||  !$fh->flush()) {
+	    die "Error while writing $i: " . $fh->error() . " ($!)";
+	}
+	my $line = $fh->getline();
+	die "Error while reading $i: " . $fh->error() . " ($!)"
+	    unless defined($line);
+	die "Result error: Expected " . ($i*2) . ", got $line"
+	    unless ($line =~ /(\d+)/  &&  $1 == $i*2);
+    }
+};
+if ($@) {
+    print STDERR "$@\n";
+    print "not ok 4\n";
+} else {
+    print "ok 4\n";
 }
-printf("%s 4\n", $ok ? "ok" : "not ok");
 printf("%s 5\n", $fh->close() ? "ok" : "not ok");
 
 END {

@@ -41,46 +41,36 @@ sub IsNum {
 sub ReadWrite {
     my $fh = shift; my $i = shift; my $j = shift;
     if (!$fh->print("$j\n")  ||  !$fh->flush()) {
-	print STDERR "Child $i: Error while writing $j: $!";
-	return 0;
+	die "Child $i: Error while writing $j: " . $fh->error() . " ($!)";
     }
     my $line = $fh->getline();
-    if (defined($line)) {
-	if (defined(my $num = IsNum($line))) {
-	    if ($num != $j*2) {
-		print STDERR "Child $i: Expected " . $j*2 .
-		    ", got '$num'\n";
-		return 0;
-	    }
-	} else {
-	    print STDERR ("Child $i: Cannot parse result: ",
-			  (defined($line) ? "undef" : $line) , "\n");
-	    return 0;
-	}
-    } else {
-	print STDERR "Child $i: Error while reading: $!";
-	return 0;
-    }
-    return 1;
+    die "Child $i: Error while reading: " . $fh->error() . " ($!)"
+	unless defined($line);
+    my $num;
+    die "Child $i: Cannot parse result: $line"
+	unless defined($num = IsNum($line));
+    die "Child $i: Expected " . ($j*2) . ", got $num"
+	unless $j*2 == $num;
 }
 
 
 sub MyChild {
     my $i = shift;
 
-    # This is the child.
-    #print "Child $i: Starting\n";
-    my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
-				   'PeerPort' => $port);
-    if (!$fh) {
-	print STDERR "Cannot connect: $!";
+    eval {
+	my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
+				       'PeerPort' => $port);
+	if (!$fh) {
+	    die "Cannot connect: $!";
+	}
+	for (my $j = 0;  $j < 1000;  $j++) {
+	    ReadWrite($fh, $i, $j);
+	}
+    };
+    if ($@) {
+	print STDERR "Client: Error $@\n";
 	return 0;
     }
-    #print "Child $i: Connected\n";
-    for (my $j = 0;  $j < 1000;  $j++) {
-	return 0 unless(ReadWrite($fh, $i, $j));
-    }
-    #print "Child $i done.\n";
     return 1;
 }
 
@@ -157,4 +147,5 @@ END {
     }
     %childs = ();
     unlink "ndtest.prt";
+    exit 0;
 }

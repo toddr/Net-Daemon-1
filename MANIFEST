@@ -2,6 +2,7 @@ ChangeLog		Module history
 MANIFEST		This file
 MANIFEST.SKIP		Files to ignore while generating the dist archive
 Makefile.PL		Makefile generator
+README			Ascii docs
 lib/Net/Daemon.pm	Net::Daemon module
 lib/Net/Daemon/Log.pm	Support class for logging
 lib/Net/Daemon/Test.pm	Support class for writing tests

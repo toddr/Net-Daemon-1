@@ -1,5 +1,7 @@
 # -*- perl -*-
 #
+#   $Id: threadm.t,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#
 
 require 5.004;
 use strict;
@@ -46,52 +48,37 @@ sub IsNum {
 
 sub ReadWrite {
     my $fh = shift; my $i = shift; my $j = shift;
-    if (!$fh->print("$j\n")  ||  !$fh->flush()) {
-	print STDERR "Child $i: Error while writing $j: $!";
-	return 0;
-    }
+    die "Child $i: Error while writing $j: $!"
+	unless $fh->print("$j\n") and $fh->flush();
     my $line = $fh->getline();
-    if (defined($line)) {
-	if (defined(my $num = IsNum($line))) {
-	    if ($num != $j*2) {
-		print STDERR "Child $i: Expected " . $j*2 .
-		    ", got '$num'\n";
-		return 0;
-	    }
-	} else {
-	    print STDERR ("Child $i: Cannot parse result: ",
-			  (defined($line) ? "undef" : $line) , "\n");
-	    return 0;
-	}
-    } else {
-	print STDERR "Child $i: Error while reading: $!";
-	return 0;
-    }
-    return 1;
+    die "Child $i: Error while reading: " . $fh->error() . " ($!)"
+	unless defined($line);
+    my $num = IsNum($line);
+    die "Child $i: Cannot parse result: $line"
+	unless defined($num);
+    die "Child $i: Expected " . ($j*2) . ", got $num"
+	unless ($num == $j*2);
 }
 
 
 sub MyChild {
     my $i = shift;
 
-    # This is the child.
-    #print "Child $i: Starting\n";
-    my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
-				   'PeerPort' => $port);
-    if (!$fh) {
-	print STDERR "Cannot connect: $!";
+    eval {
+	my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
+				       'PeerPort' => $port);
+	die "Cannot connect: $!" unless defined($fh);
+	for (my $j = 0;  $j < 1000;  $j++) {
+	    ReadWrite($fh, $i, $j);
+	}
+    };
+    if ($@) {
+	print STDERR $@;
 	return 0;
     }
-    #print "Child $i: Connected\n";
-    for (my $j = 0;  $j < 1000;  $j++) {
-	return 0 unless(ReadWrite($fh, $i, $j));
-    }
-    #print "Child $i done.\n";
     return 1;
 }
 
-
-# Spawn 10 childs, each of them running a series of test
 
 my @threads;
 for (my $i = 0;  $i < 10;  $i++) {
@@ -103,6 +90,7 @@ for (my $i = 0;  $i < 10;  $i++) {
     }
     push(@threads, $tid);
 }
+alarm 120;
 for (my $i = 1;  $i <= 10;  $i++) {
     my $tid = shift @threads;
     if ($tid->join()) {
@@ -111,9 +99,6 @@ for (my $i = 1;  $i <= 10;  $i++) {
 	print "not ok $i\n";
     }
 }
-
-my $line;
-alarm 120;
 
 END {
     if ($handle) {

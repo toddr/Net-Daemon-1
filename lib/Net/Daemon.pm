@@ -1,5 +1,7 @@
 # -*- perl -*-
 #
+#   $Id: Daemon.pm,v 1.2 1999/02/22 23:44:07 joe Exp $
+#
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
 #   Copyright (C) 1998, Jochen Wiedmann
@@ -29,7 +31,7 @@ require Net::Daemon::Log;
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.15';
+$Net::Daemon::VERSION = '0.17';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -78,6 +80,9 @@ sub Options ($) {
       'localport' => { 'template' => 'localport=s',
 		       'description' => '--localport <port>      '
 			   . 'Port number to bind to' },
+      'logfile' => { 'template' => 'logfile=s',
+		       'description' => '--logfile <file>        '
+			   . 'Force logging to <file>' },
       'mode' => { 'template' => 'mode=s',
 		  'description' => '--mode <mode>           '
 		      . 'Operation mode (threads, fork or single)' },

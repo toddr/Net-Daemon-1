@@ -1,5 +1,7 @@
 # -*- perl -*-
 #
+#   $Id: server,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#
 #   This example implements a very simple server, let's call it
 #   multiplier. When a client connects, it waits for decimal numbers
 #   as input. These numbers are written back, multiplied by 2.
@@ -43,40 +45,37 @@ sub Run ($) {
     my $self = shift;
     my($line, $sock);
     $sock = $self->{'socket'};
-    while (1) {
-	if (!defined($line = GetLine($sock))) {
-	    if ($sock->error()) {
-	        print STDERR "Client connection error ", $sock->error(), "\n";
-		$self->Log('err', "Client connection error %s",
-			   $sock->error());
+    eval {
+	while (1) {
+	    if (!defined($line = GetLine($sock))) {
+		if ($sock->error()) {
+		    die "Client connection error " . $sock->error() . " ($!)";
+		}
+		last;
 	    }
-	    $sock->close();
-	    return;
-	}
-	my $num;
-	{
-	    my $lock = lock($Net::Daemon::RegExpLock)
-		if ($self->{'mode'} eq 'threads');
-	    if ($line =~ /(\d+)/) {
-		$num = $1;
+	    my $num;
+	    {
+		my $lock = lock($Net::Daemon::RegExpLock)
+		    if ($self->{'mode'} eq 'threads');
+		if ($line =~ /(\d+)/) {
+		    $num = $1;
+		}
+	    }
+	    if (defined($num)) {
+		if (!Print($sock, $num*2, "\n")) {
+		    die "Client connection error " . $sock->error() .
+			" ($!) while writing.";
+		}
+	    } else {
+		die "Server cannot parse input: $line";
 	    }
 	}
-	if (defined($num)) {
-	    if (!Print($sock, $num*2, "\n")) {
-	        print STDERR ("Client connection error ", $sock->error(),
-		              " while writing\n");
-		$self->Log('err', "Client connection error %s while writing",
-			   $sock->error());
-		$sock->close();
-		return;
-	    }
-	} else {
-	    print STDERR ("Server cannot parse input: $line\n");
-	    $self->Log('err', "Cannot parse input: $line");
-	    $sock->close();
-	    return;
-	}
+    };
+    if ($@) {
+	print STDERR "$@\n";
+	$self->Error($@);
     }
+    $sock->close();
 }
 
 

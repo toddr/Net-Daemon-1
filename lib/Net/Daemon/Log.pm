@@ -1,5 +1,7 @@
 # -*- perl -*-
 #
+#   $Id: Log.pm,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
 #   Copyright (C) 1998, Jochen Wiedmann
