@@ -1,5 +1,6 @@
 ChangeLog		Module history
 MANIFEST		This file
+MANIFEST.SKIP		Files to ignore while generating the dist archive
 Makefile.PL		Makefile generator
 lib/Net/Daemon.pm	Net::Daemon module
 lib/Net/Daemon/Log.pm	Support class for logging
@@ -7,6 +8,8 @@ lib/Net/Daemon/Test.pm	Support class for writing tests
 t/base.t		Base test
 t/config.t		Test of config file handling and access control
 t/fork.t		Test of a forking server
+t/forkm.t		Test of a forking server with multiple clients
 t/single.t		Test of a single-mode server
 t/thread.t		Test of a multithreaded server
+t/threadm.t		Test of a multithreaded server with multiple clients
 t/server		Script used by fork.t and thread.t

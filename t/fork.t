@@ -32,8 +32,16 @@ for (my $i = 0;  $ok  &&  $i < 20;  $i++) {
     print "Written.\n";
     my($line) = $fh->getline();
     print "line = ", (defined($line) ? $line : "undef"), "\n";
-    if (!defined($line)) { $ok = 0;  last; }
-    if ($line !~ /(\d+)/  ||  $1 != $i*2) { $ok = 0;  last; }
+    if (!defined($line)) {
+        $ok = 0;
+	print STDERR "Missing response, i = $i, error ", $fh->error(), "\n";
+	last;
+    }
+    if ($line !~ /(\d+)/  ||  $1 != $i*2) {
+        $ok = 0;
+	print STDERR "Wrong response, got $line\n";
+	last;
+    }
 }
 printf("%s 4\n", $ok ? "ok" : "not ok");
 printf("%s 5\n", $fh->close() ? "ok" : "not ok");

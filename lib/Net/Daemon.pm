@@ -29,8 +29,13 @@ require Net::Daemon::Log;
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.13';
+$Net::Daemon::VERSION = '0.15';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
+
+#
+#   Regexps aren't thread safe, as of 5.00502 :-(
+#
+$Net::Daemon::RegExpLock = 1;
 
 
 ############################################################################
@@ -292,6 +297,14 @@ sub Accept ($) {
 	    }
 	    my $masks = ref($client->{'mask'}) ?
 		$client->{'mask'} : [ $client->{'mask'} ];
+
+	    #
+	    # Regular expressions aren't thread safe, as of
+	    # 5.00502 :-(
+	    #
+	    my $lock;
+	    $lock = lock($Net::Daemon::RegExpLock)
+		if ($self->{'mode'} eq 'threads');
 	    foreach my $mask (@$masks) {
 		foreach my $alias (@patterns) {
 		    if ($alias =~ /$mask/) {
@@ -431,7 +444,7 @@ sub Bind ($) {
 			 ref($self), $self->{'socket'}->error() || $!);
 	} else {
 	    $self->Debug("Connection from %s, port %s\n",
-			 $client->sockhost(), $client->sockhost());
+			 $client->sockhost(), $client->sockport());
 	}
 	my $sth = $self->Clone($client);
 	$self->Debug("Child clone: $sth\n");
@@ -445,7 +458,7 @@ sub Bind ($) {
 		    if (!$self->Accept()) {
 			$self->Error('Refusing client');
 		    } else {
-			$self->Log('notice', 'Accepting client');
+			$self->Debug('Accepting client');
 			$self->Run();
 		    }
 		};
@@ -883,7 +896,7 @@ given base.
   # Treat command line option in the constructor
   sub new ($$;$) {
       my($class, $attr, $args) = @_;
-      my($self) = $class->SUPER::new($class, $attr, $args);
+      my($self) = $class->SUPER::new($attr, $args);
       if ($self->{'parent'}) {
 	  # Called via Clone()
 	  $self->{'base'} = $self->{'parent'}->{'base'};
@@ -896,6 +909,7 @@ given base.
       if (!$self->{'base'}) {
 	  $self->{'base'} = 'dec';
       }
+      $self;
   }
 
   sub Run ($) {
@@ -911,6 +925,7 @@ given base.
 	      $sock->close();
 	      return;
 	  }
+	  $line =~ s/\s+$//; # Remove CRLF
 	  my($result) = eval $line;
 	  my($rc);
 	  if ($self->{'base'} eq 'hex') {
@@ -928,6 +943,12 @@ given base.
 	  }
       }
   }
+
+  package main;
+
+  my $server = Calculator->new({'pidfile' => 'none',
+				'localport' => 2000}, \@ARGV);
+  $server->Bind();
 
 
 =head1 AUTHOR AND COPYRIGHT
