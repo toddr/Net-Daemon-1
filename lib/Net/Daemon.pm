@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.32';
+$Net::Daemon::VERSION = '0.33';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -1141,6 +1141,24 @@ given base.
   my $server = Calculator->new({'pidfile' => 'none',
 				'localport' => 2000}, \@ARGV);
   $server->Bind();
+
+
+=head1 KNOWN PROBLEMS
+
+Most, or even any, known problems are related to the Sys::Syslog module
+which is by default used for logging events under Unix. I'll quote some
+examples:
+
+=over
+
+=item Usage: Sys::Syslog::_PATH_LOG at ...
+
+This problem is treated in perl bug 20000712.003. A workaround is
+changing line 277 of Syslog.pm to
+
+  my $syslog = &_PATH_LOG() || croak "_PATH_LOG not found in syslog.ph";
+
+=back
 
 
 =head1 AUTHOR AND COPYRIGHT
