@@ -28,28 +28,53 @@ sub Version ($) {
     return "Multiplier - A simple network calculator; 1998, Jochen Wiedmann";
 }
 
+sub GetLine {
+    my $sock = shift;
+    $sock->getline();
+    
+}
+
+sub Print {
+    my $sock = shift;
+    $sock->print(@_) && $sock->flush();
+}
+
 sub Run ($) {
     my $self = shift;
     my($line, $sock);
     $sock = $self->{'socket'};
     while (1) {
-	if (!defined($line = $sock->getline())) {
+	if (!defined($line = GetLine($sock))) {
 	    if ($sock->error()) {
+	        print STDERR "Client connection error ", $sock->error(), "\n";
 		$self->Log('err', "Client connection error %s",
 			   $sock->error());
 	    }
 	    $sock->close();
 	    return;
 	}
-	if ($line =~ /(\d+)/) {
-	    $self->Debug("Server: Got number $1\n");
-	    my($num) = $1*2;
-	    if (!$sock->print("$num\n")  ||  !$sock->flush()) {
+	my $num;
+	{
+	    my $lock = lock($Net::Daemon::RegExpLock)
+		if ($self->{'mode'} eq 'threads');
+	    if ($line =~ /(\d+)/) {
+		$num = $1;
+	    }
+	}
+	if (defined($num)) {
+	    if (!Print($sock, $num*2, "\n")) {
+	        print STDERR ("Client connection error ", $sock->error(),
+		              " while writing\n");
 		$self->Log('err', "Client connection error %s while writing",
 			   $sock->error());
 		$sock->close();
 		return;
 	    }
+	} else {
+	    print STDERR ("Server cannot parse input: $line\n");
+	    $self->Log('err', "Cannot parse input: $line");
+	    $sock->close();
+	    return;
 	}
     }
 }

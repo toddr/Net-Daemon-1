@@ -1,3 +1,12 @@
+1998-12-06  Jochen Wiedmann  <joe@ispsoft.de> (0.15)
+
+	* Added regexp lock.
+	* Fixed the example server in the man page.
+
+1998-10-30  Jochen Wiedmann  <joe@ispsoft.de> (0.14)
+
+	* lib/Net/Daemon.pm (Bind): Made server quiet without '--debug'.
+
 1998-10-28  Jochen Wiedmann  <joe@ispsoft.de> (0.13)
 
 	* lib/Net/Daemon.pm: Some minor modifications for the DBI Proxy.
