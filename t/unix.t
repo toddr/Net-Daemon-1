@@ -10,6 +10,11 @@ use IO::Socket ();
 use Config ();
 use Net::Daemon::Test ();
 
+if ($^O eq "MSWin32") {
+  print "1..0\n";
+  exit 0;
+}
+
 my $numTests = 5;
 
 

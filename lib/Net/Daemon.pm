@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.34';
+$Net::Daemon::VERSION = '0.35';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -42,6 +42,7 @@ $Net::Daemon::VERSION = '0.34';
 #
 $Net::Daemon::RegExpLock = 1;
 
+use vars qw($exit);
 
 ############################################################################
 #
@@ -65,6 +66,9 @@ sub Options ($) {
 		          . '                        '
 		          . 'functions like bind(), recv()), ...'
 		    },
+      'childs' => { 'template' => 'childs=i',
+		    'description' =>  '--childs <num>          '
+			. 'Set number of preforked childs, implies mode=single.' },
       'chroot' => { 'template' => 'chroot=s',
 		    'description' =>  '--chroot <dir>          '
 			. 'Change rootdir to given after binding to port.' },
@@ -247,19 +251,25 @@ sub new ($$;$) {
 	$self->{$var} = $val;
     }
 
-    if (!defined($self->{'mode'})) {
+    if ($self->{'childs'}) {
+	$self->{'mode'} = 'single';
+    } elsif (!defined($self->{'mode'})) {
 	if (eval { require Thread }) {
 	    $self->{'mode'} = 'threads';
 	} else {
-	    my $pid = eval { fork() };
-	    if (!defined($pid)) {
-		$self->{'mode'} = 'single';
-	    } elsif (!$pid) {
-		# This is the child, exit immediately
-		exit(0);
-	    } else {
-		wait;
+	    my $fork = 0;
+	    if ($^O ne "MSWin32") {
+		my $pid = eval { fork() };
+		if (defined($pid)) {
+		    if (!$pid) { exit; } # Child
+		    $fork = 1;
+		    wait;
+	        }
+	    }
+	    if ($fork) {
 		$self->{'mode'} = 'fork';
+	    } else {
+		$self->{'mode'} = 'single';
 	    }
 	}
     }
@@ -275,6 +285,9 @@ sub new ($$;$) {
     }
     $self->{'catchint'} = 1 unless exists($self->{'catchint'});
     $self->Debug("Server starting in operation mode $self->{'mode'}");
+    if ($self->{'childs'}) {
+	$self->Debug("Preforking $self->{'childs'} child processes ...");
+    }
 
     $self;
 }
@@ -492,8 +505,8 @@ sub HandleChild {
 
 sub SigChildHandler {
     my $self = shift; my $ref = shift;
-    return undef if $self->{'mode'} ne 'fork'; # Don't care for childs.
-    'IGNORE';
+    return 'IGNORE' if $self->{'mode'} eq 'fork' || $self->{'childs'};
+    return undef; # Don't care for childs.
 }
 
 sub Bind ($) {
@@ -569,6 +582,45 @@ sub Bind ($) {
 	    }
 	}
 	$< = ($> = $user);
+    }
+
+    if ($self->{'childs'}) {
+      my $pid;
+
+      my $childpids = $self->{'childpids'} = {};
+      for (my $n = 0; $n < $self->{'childs'}; $n++) {
+	$pid = fork();
+	die "Cannot fork: $!" unless defined $pid;
+	if (!$pid) { #Child
+	  $self->{'mode'} = 'single';
+	  last;
+	}
+	# Parent
+	$childpids->{$pid} = 1;
+      }
+      if ($pid) {
+	# Parent waits for childs in a loop, then exits ...
+	# We could also terminate the parent process, but
+	# if the parent is still running we can kill the
+	# whole group by killing the childs.
+	my $childpid;
+	$exit = 0;
+	$SIG{'TERM'} = sub { die };
+	$SIG{'INT'}  = sub { die };
+	eval {
+	  do {
+	    $childpid = wait;
+	    delete $childpids->{$childpid};
+	    $self->Debug("Child $childpid has exited");
+	  } until ($childpid <= 0 || $exit || keys(%$childpids) == 0);
+	};
+	my @pids = keys %{$self -> {'childpids'}};
+	if (@pids) {
+	  $self->Debug("kill TERM childs: " . join(",", @pids));
+	  kill 'TERM', @pids if @pids ; # send a TERM to all childs
+	}
+	exit (0);
+      }
     }
 
     my $time = $self->{'loop-timeout'} ?
@@ -827,9 +879,23 @@ you use the "--mode=fork" option.
 
 Finally there's a single-connection mode: If the server has accepted a
 connection, he will enter the Run() method. No other connections are
-accepted until the Run() method returns. This operation mode is usefull
+accepted until the Run() method returns. This operation mode is useful
 if you have neither threads nor fork(), for example on the Macintosh.
 For debugging purposes you can force this mode with "--mode=single".
+
+When running in mode single, you can still handle multiple clients at
+a time by preforking multiple child processes. The number of childs
+is configured with the option "--childs".
+
+=item I<childs>
+
+Use this parameter to let Net::Daemon run in prefork mode, which means
+it forks the number of childs processes you give with this parameter,
+and all child handle connections concurrently. The difference to
+fork mode is, that the child processes continue to run after a
+connection has terminated and are able to accept a new connection.
+This is useful for caching inside the childs process (e.g.
+DBI::ProxyServer connect_cached attribute)
 
 =item I<options>
 

@@ -5,18 +5,39 @@
 
 require 5.004;
 use strict;
-
 use IO::Socket ();
 use Config ();
 use Net::Daemon::Test ();
 
+my $ok;
+eval {
+  if ($^O ne "MSWin32") {
+    my $pid = fork();
+    if (defined($pid)) {
+      if (!$pid) { exit 0; } # Child
+    }
+    $ok = 1;
+  }
+};
+if (!$ok) {
+  print "1..0\n";
+  exit 0;
+}
+
+
 my $numTests = 5;
 
 
-my($handle, $port) = Net::Daemon::Test->Child($numTests,
-					      $^X, '-Iblib/lib', '-Iblib/arch',
-					      't/server', '--mode=fork',
-					      '--debug', '--timeout', 60);
+my($handle, $port);
+if (@ARGV) {
+    $port = shift @ARGV;
+} else {
+    ($handle, $port) = Net::Daemon::Test->Child($numTests,
+						$^X, '-Iblib/lib',
+						'-Iblib/arch',
+						't/server', '--mode=fork',
+						'--debug', '--timeout', 60);
+}
 
 print "Making first connection to port $port...\n";
 my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',

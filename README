@@ -161,9 +161,22 @@ DESCRIPTION
         Finally there's a single-connection mode: If the server has accepted
         a connection, he will enter the Run() method. No other connections
         are accepted until the Run() method returns. This operation mode is
-        usefull if you have neither threads nor fork(), for example on the
+        useful if you have neither threads nor fork(), for example on the
         Macintosh. For debugging purposes you can force this mode with
         "--mode=single".
+
+        When running in mode single, you can still handle multiple clients
+        at a time by preforking multiple child processes. The number of
+        childs is configured with the option "--childs".
+
+    *childs*
+        Use this parameter to let Net::Daemon run in prefork mode, which
+        means it forks the number of childs processes you give with this
+        parameter, and all child handle connections concurrently. The
+        difference to fork mode is, that the child processes continue to run
+        after a connection has terminated and are able to accept a new
+        connection. This is useful for caching inside the childs process
+        (e.g. DBI::ProxyServer connect_cached attribute)
 
     *options*
         Array ref of Command line options that have been passed to the
