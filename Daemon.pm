@@ -46,7 +46,7 @@ if ($Config::Config{'archname'} =~ /win32/i) {
 
 @ISA = qw(AutoLoader);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 
 ############################################################################
@@ -565,21 +565,144 @@ style of printf and the format strings arguments.
 =head2 Flow of control
 
   $server->Bind();
+  # The following inside Bind():
   if ($connection->Accept()) {
       $connection->Run();
   } else {
       $connection->Log('err', 'Connection refused');
   }
 
+The C<Bind> method is called by the application when the server should
+start. Typically this can be done right after creating the server object
+C<$server>. C<Bind> usually never returns, except in case of errors.
 
-    
-=head1 AUTHOR
+When a client connects, the server uses C<Clone> to derive a connection
+object C<$connection> from the server object. A new thread or process
+is created that uses the connection object to call your classes
+C<Accept> method. This method is intended for host authorization and
+should return either FALSE (refuse the client) or TRUE (accept the client).
 
-A. U. Thor, a.u.thor@a.galaxy.far.far.away
+If the client is accepted, the C<Run> method is called which does the
+true work. The connection is closed when C<Run> returns and the corresponding
+thread or process exits.
+
+=head1 EXAMPLE
+
+As an example we'll write a simple calculator server. After connecting
+to this server you may type expressions, one per line. The server
+evaluates the expressions and prints the result. (Note this is an example,
+in real life we'd never implement sucj a security hole. :-)
+
+For the purpose of example we add a command line option I<--base> that
+takes 'hex', 'oct' or 'dec' as values: The servers output will use the
+given base.
+
+  # -*- perl -*-
+  #
+  # Calculator server
+  #
+  require 5.004;
+  use strict;
+
+  require Net::Daemon;
+
+
+  package Calculator;
+
+  use vars qw($VERSION @ISA);
+  $VERSION = '0.01';
+  @ISA = qw(Net::Daemon); # to inherit from Net::Daemon
+
+  sub Version ($) { 'Calculator Example Server, 0.01'; }
+
+  # Add a command line option "--base"
+  sub Options ($) {
+      my($self) = @_;
+      my($options) = $self->SUPER::Options();
+      $options->{'base'} = { 'template' => 'base=s',
+			     'description' => '--base                  '
+				    . 'dec (default), hex or oct'
+			      };
+      $options;
+  }
+
+  # Treat command line option in the constructor
+  sub new ($$;$) {
+      my($class, $attr, $args) = @_;
+      my($self) = $class->SUPER::new($class, $attr, $args);
+      if ($self->{'parent'}) {
+	  # Called via Clone()
+	  $self->{'base'} = $self->{'parent'}->{'base'};
+      } else {
+	  # Initial call
+	  if ($self->{'options'}  &&  $self->{'options'}->{'base'}) {
+	      $self->{'base'} = $self->{'options'}->{'base'}
+          }
+      }
+      if (!$self->{'base'}) {
+	  $self->{'base'} = 'dec';
+      }
+  }
+
+  sub Run ($) {
+      my($self) = @_;
+      my($line, $sock);
+      $sock = $self->{'socket'};
+      while (1) {
+	  if (!defined($line = $sock->getline())) {
+	      if ($sock->error()) {
+		  $self->Log('err', "Client connection error %s",
+			     $sock->error());
+	      }
+	      $sock->close();
+	      return;
+	  }
+	  my($result) = eval $line;
+	  my($rc);
+	  if ($self->{'base'} eq 'hex') {
+	      $rc = printf $sock ("%x\n", $result);
+	  } elsif ($self->{'base'} eq 'oct') {
+	      $rc = printf $sock ("%o\n", $result);
+	  } else {
+	      $rc = printf $sock ("%d\n", $result);
+	  }
+	  if (!$rc) {
+	      $self->Log('err', "Client connection error %s",
+			 $sock->error());
+	      $sock->close();
+	      return;
+	  }
+      }
+  }
+
+=head1 AUTHOR AND COPYRIGHT
+
+  Net::Daemon is Copyright (C) 1998, Jochen Wiedmann
+                                     Am Eisteich 9
+                                     72555 Metzingen
+                                     Germany
+
+                                     Phone: +49 7123 14887
+                                     Email: joe@ispsoft.de
+
+This module is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This module is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this module; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
 
 =head1 SEE ALSO
 
-perl(1).
+RPC::pServer (3)
 
 =cut
 
