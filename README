@@ -12,11 +12,6 @@ SYNOPSIS
         # new connection is made.
       }
 
-WARNING
-    THIS IS ALPHA SOFTWARE. It is *only* 'Alpha' because the interface (API)
-    is not finalised. The Alpha status does not reflect code quality or
-    stability.
-
 DESCRIPTION
     Net::Daemon is an abstract base class for implementing portable server
     applications in a very simple way. The module is designed for Perl 5.005
@@ -29,15 +24,14 @@ DESCRIPTION
     but typically inheriting will safe you a lot of work anyways.
 
   Constructors
-
       $server = Net::Daemon->new($attr, $options);
 
       $connection = $server->Clone($socket);
 
     Two constructors are available: The new method is called upon startup
     and creates an object that will basically act as an anchor over the
-    complete program. It supports command line parsing via the Getopt::Long
-    (3) entry elsewhere in this document.
+    complete program. It supports command line parsing via "Getopt::Long
+    (3)".
 
     Arguments of new are *$attr*, an hash ref of attributes (see below) and
     *$options* an array ref of options, typically command line arguments
@@ -77,22 +71,22 @@ DESCRIPTION
         An array ref with a list of clients. Clients are hash refs, the
         attributes *accept* (0 for denying access and 1 for permitting) and
         *mask*, a Perl regular expression for the clients IP number or its
-        host name. See the section on "Access control" below.
+        host name. See "Access control" below.
 
     *configfile* (--configfile=file)
         Net::Daemon supports the use of config files. These files are
         assumed to contain a single hash ref that overrides the arguments of
         the new method. However, command line arguments in turn take
-        precedence over the config file. See the the section on "Config
-        File" section below for details on the config file.
+        precedence over the config file. See the "Config File" section below
+        for details on the config file.
 
     *debug* (--debug)
         Turn debugging mode on. Mainly this asserts that logging messages of
         level "debug" are created.
 
     *facility* (--facility=mode)
-        (UNIX only) Facility to use for the Sys::Syslog (3) entry elsewhere
-        in this document. The default is daemon.
+        (UNIX only) Facility to use for "Sys::Syslog (3)". The default is
+        daemon.
 
     *group* (--group=gid)
         After doing a bind(), change the real and effective GID to the
@@ -151,7 +145,8 @@ DESCRIPTION
         If you are running Perl 5.005 and did compile it for threads, then
         the server will create a new thread for each connection. The thread
         will execute the server's Run() method and then terminate. This mode
-        is the default, you can force it with "--mode=threads".
+        is the default, you can force it with "--mode=ithreads" or
+        "--mode=threads".
 
         If threads are not available, but you have a working fork(), then
         the server will behave similar by creating a new process for each
@@ -220,7 +215,6 @@ DESCRIPTION
     only.
 
   Command Line Parsing
-
       my $optionsAvailable = Net::Daemon->Options();
 
       print Net::Daemon->Version(), "\n";
@@ -241,7 +235,6 @@ DESCRIPTION
     uses the Version method for printing program name and version.
 
   Config File
-
     If the config file option is set in the command line options or in the
     in the "new" args, then the method
 
@@ -290,7 +283,6 @@ DESCRIPTION
         }
 
   Access control
-
     The Net::Daemon package supports a host based access control scheme. By
     default access is open for anyone. However, if you create an attribute
     $self->{'clients'}, typically in the config file, then access control is
@@ -308,26 +300,23 @@ DESCRIPTION
             attribute), the former means accepting the client.
 
   Event logging
-
       $server->Log($level, $format, @args);
       $server->Debug($format, @args);
       $server->Error($format, @args);
       $server->Fatal($format, @args);
 
-    The Log method is an interface to the Sys::Syslog (3) entry elsewhere in
-    this document or the Win32::EventLog (3) entry elsewhere in this
-    document. It's arguments are *$level*, a syslog level like debug, notice
-    or err, a format string in the style of printf and the format strings
+    The Log method is an interface to "Sys::Syslog (3)" or "Win32::EventLog
+    (3)". It's arguments are *$level*, a syslog level like debug, notice or
+    err, a format string in the style of printf and the format strings
     arguments.
 
     The Debug and Error methods are shorthands for calling Log with a level
     of debug and err, respectively. The Fatal method is like Error, except
     it additionally throws the given message as exception.
 
-    See the Net::Daemon::Log(3) manpage for details.
+    See Net::Daemon::Log(3) for details.
 
   Flow of control
-
       $server->Bind();
       # The following inside Bind():
       if ($connection->Accept()) {
@@ -351,7 +340,6 @@ DESCRIPTION
     thread or process exits.
 
   Error Handling
-
     All methods are supposed to throw Perl exceptions in case of errors.
 
 MULTITHREADING CONSIDERATIONS
@@ -359,6 +347,7 @@ MULTITHREADING CONSIDERATIONS
     the exception being the OpenLog method which is invoked before threading
     starts. Thus you are safe as long as you don't share handles between
     threads. I strongly recommend that your application behaves similar.
+    (This doesn't apply to mode 'ithreads'.)
 
 EXAMPLE
     As an example we'll write a simple calculator server. After connecting
@@ -482,6 +471,6 @@ AUTHOR AND COPYRIGHT
       Perl README file.
 
 SEE ALSO
-    the RPC::pServer(3) manpage, the Netserver::Generic(3) manpage, the
-    Net::Daemon::Log(3) manpage, the Net::Daemon::Test(3) manpage
+    RPC::pServer(3), Netserver::Generic(3), Net::Daemon::Log(3),
+    Net::Daemon::Test(3)
 

@@ -1,3 +1,16 @@
+2003-11-10  Jochen Wiedmann  <joe@ispsoft.de> (0.38)
+
+	* lib/Net/Daemon.pm: It is now possible to specify
+	  user/group root (aka 0). (rgreab@fx.ro)
+ 	* Added mode 'ithreads'. (Bill Jackson,
+ 	  <bjackson@ah.ddiglobal.com>)
+ 	* lib/Net/Daemon.pm (Bind): The parent process is
+ 	  now explicitly closing the client socket in fork
+ 	  mode. (Thought this would happen automatically
+ 	  due to garbage collection, but possibly it
+ 	  doesn't.) Tulsi Ram Mayala,
+ 	  <tulsi_rammayala@pspl.co.in>
+
 2002-08-20  Jochen Wiedmann  <joe@ispsoft.de> (0.37)
 
 	* lib/Net/Daemon.pm (Bind): The server died, if
