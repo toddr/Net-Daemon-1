@@ -1,3 +1,8 @@
+1999-07-01  Jochen Wiedmann  <joe@ispsoft.de> (0.22)
+
+	* lib/Net/Daemon.pm (Bind): Made --pidfile working.
+	  (Joshua Pincus <pncu_ss@troi.cc.rochester.de>)
+
 1999-06-27  Jochen Wiedmann  <joe@ispsoft.de> (0.21)
 
 	* lib/Net/Daemon.pm (Bind): Under Solaris the accept() call
