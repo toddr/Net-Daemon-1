@@ -1,7 +1,7 @@
-COPYING			The GNU General Public License
 Daemon.pm		Net::Daemon module
 MANIFEST		This file
 Makefile.PL		Makefile generator
+lib/Net/Daemon/Test.pm	Support class for writing tests
 t/base.t		Base test
 t/fork.t		Test of a forking server
 t/thread.t		Test of a multithreaded server
