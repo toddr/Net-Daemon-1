@@ -1,3 +1,8 @@
+2000-11-07  Jochen Wiedmann  <joe@ispsoft.de> (0.32)
+	
+	* lib/Net/Daemon.pm: SigChildHandler is now always returning
+	  undef or IGNORE.
+
 2000-06-26  Jochen Wiedmann  <joe@ispsoft.de> (0.31)
 
 	* lib/Net/Daemon/Log.pm (OpenLog): Same thing for FreeBSD. Thanks

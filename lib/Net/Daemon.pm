@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.31';
+$Net::Daemon::VERSION = '0.32';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -493,12 +493,7 @@ sub HandleChild {
 sub SigChildHandler {
     my $self = shift; my $ref = shift;
     return undef if $self->{'mode'} ne 'fork'; # Don't care for childs.
-    return 'IGNORE' if $^O =~ /^(?:linux|solaris)$/;
-    my $reaper;
-    sub {
-	$$ref = wait;
-	$SIG{'CHLD'} = $reaper;
-    };
+    'IGNORE';
 }
 
 sub Bind ($) {
@@ -1055,7 +1050,7 @@ behaves similar.
 As an example we'll write a simple calculator server. After connecting
 to this server you may type expressions, one per line. The server
 evaluates the expressions and prints the result. (Note this is an example,
-in real life we'd never implement sucj a security hole. :-)
+in real life we'd never implement such a security hole. :-)
 
 For the purpose of example we add a command line option I<--base> that
 takes 'hex', 'oct' or 'dec' as values: The servers output will use the
