@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.28';
+$Net::Daemon::VERSION = '0.29';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -609,10 +609,11 @@ sub Bind ($) {
 	    } else {
 		if ($self->{'debug'}) {
 		    my $from = $self->{'proto'} eq 'unix' ?
-			'Unix socket' : sprintf('%s, port %s',
-						# SE 19990917: display client data!!
-						$client->peerhost(),
-						$client->peerport());
+			'Unix socket' :
+			sprintf('%s, port %s',
+				# SE 19990917: display client data!!
+				$client->peerhost(),
+				$client->peerport());
 		    $self->Debug("Connection from $from");
 		}
 		my $sth = $self->Clone($client);
