@@ -143,7 +143,7 @@ END {
 	undef $handle;
     }
     while (my($var, $val) = each %childs) {
-	kill 1, $var;
+	kill 'TERM', $var;
     }
     %childs = ();
     unlink "ndtest.prt";

@@ -39,7 +39,7 @@ use Symbol ();
 use File::Basename ();
 
 
-$Net::Daemon::Test::VERSION = '0.01';
+$Net::Daemon::Test::VERSION = '0.02';
 @Net::Daemon::Test::ISA = qw(Net::Daemon);
 
 
@@ -334,7 +334,7 @@ package Net::Daemon::Test::Fork;
 sub Terminate ($) {
     my $self = shift;
     my $pid = $$self;
-    kill 1, $pid;
+    kill 'TERM', $pid;
 }
 
 package Net::Daemon::Test::Win32;
