@@ -11,6 +11,8 @@ use strict;
 use lib qw(blib/arch blib/lib);
 
 
+$| = 1;
+
 require Net::Daemon::Test;
 require IO::Socket;
 
@@ -55,8 +57,7 @@ sub Run ($) {
 
 package main;
 
-my $server = Multiplier->new({ 'localport' => 37112,
-			       'pidfile' => 'none'
+my $server = Multiplier->new({ 'pidfile' => 'none'
 			       }, \@ARGV);
 
 $server->Bind();

@@ -157,11 +157,11 @@ hope, one of these will succeed. :-)
 sub Bind ($) {
     # First try: Pass unmodified options to Net::Daemon::Bind
     my $self = shift;
-    my $options = $self->{'options'} || {};
     my @socket_args =
-	( 'LocalAddr' => $options->{'localaddr'} || $self->{'localaddr'},
-	  'Proto' => $options->{'proto'} || $self->{'proto'} || 'tcp',
-	  'Listen' => $options->{'listen'} || $self->{'listen'} || 10,
+	( 'LocalAddr' => $self->{'localaddr'},
+	  'LocalPort' => $self->{'localport'},
+	  'Proto' => $self->{'proto'} || 'tcp',
+	  'Listen' => $self->{'listen'} || 10,
 	  'Reuse' => 1
 	  );
     my $socket = eval { IO::Socket::INET->new(@socket_args) };
@@ -186,8 +186,7 @@ sub Bind ($) {
     $self->{'socket'} = $socket;
 
     
-    if (my $timeout = ($self->{'options'}->{'timeout'}  ||
-		       $self->{'timeout'})) {
+    if (my $timeout = $self->{'timeout'}) {
 	eval { alarm $timeout };
     }
 
@@ -206,7 +205,6 @@ sub Bind ($) {
 sub Run ($) {
     my $self = shift;
     $self->Run();
-    alarm 0;
 }
 
 
@@ -236,7 +234,7 @@ sub Child ($$@) {
 
     unlink 'ndtest.prt';
 
-    if ($args !~ /\-\-forking/  &&  $^O =~ /mswin32/i) {
+    if ($args =~ /\-\-mode=(?:thread|single)/  &&  $^O =~ /mswin32/i) {
 	require Win32;
 	require Win32::Process;
 	my $proc = $_[0];
@@ -292,7 +290,7 @@ sub Child ($$@) {
 	}
     }
 
-    print "1..$numTests\n";
+    print "1..$numTests\n" if defined($numTests);
     for (my $i = 0;  $i < 10  &&  ! -f 'ndtest.prt';  $i++) {
 	sleep 1;
     }

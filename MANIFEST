@@ -1,8 +1,12 @@
-Daemon.pm		Net::Daemon module
+ChangeLog		Module history
 MANIFEST		This file
 Makefile.PL		Makefile generator
+lib/Net/Daemon.pm	Net::Daemon module
+lib/Net/Daemon/Log.pm	Support class for logging
 lib/Net/Daemon/Test.pm	Support class for writing tests
 t/base.t		Base test
+t/config.t		Test of config file handling and access control
 t/fork.t		Test of a forking server
+t/single.t		Test of a single-mode server
 t/thread.t		Test of a multithreaded server
 t/server		Script used by fork.t and thread.t

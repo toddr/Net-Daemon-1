@@ -18,21 +18,19 @@
 #
 ############################################################################
 
-package Net::Daemon;
-
 require 5.004;
 use strict;
-use vars qw($VERSION @ISA);
 
-require AutoLoader;
 require Getopt::Long;
 require IO::Socket;
 require Config;
+require Net::Daemon::Log;
 
 
-@ISA = qw(AutoLoader);
+package Net::Daemon;
 
-$VERSION = '0.10';
+$Net::Daemon::VERSION = '0.13';
+@Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 
 ############################################################################
@@ -52,19 +50,19 @@ $VERSION = '0.10';
 
 sub Options ($) {
     { 'chroot' => { 'template' => 'chroot=s',
-		    'description' =>  '--chroot                '
+		    'description' =>  '--chroot <dir>          '
 			. 'Change rootdir to given after binding to port.' },
+      'configfile' => { 'template' => 'configfile=s',
+			'description' =>  '--configfile <file>     '
+			    . 'Read options from config file <file>.' },
       'debug' => { 'template' => 'debug',
 		   'description' =>  '--debug                 '
 		       . 'Turn debugging mode on'},
       'facility' => { 'template' => 'facility=s',
 		      'description' => '--facility <facility>   '
 			  . 'Syslog facility; defaults to \'daemon\'' },
-      'forking' => { 'template' => 'forking!',
-		     'description' => '--forking               '
-		          . 'Force forking (--noforking to disable)' },
       'group' => { 'template' => 'group=s',
-		   'description' => '--group                 '
+		   'description' => '--group <gid>           '
 		       . 'Change gid to given group after binding to port.' },
       'help' => { 'template' => 'help',
 		  'description' => '--help                  '
@@ -75,17 +73,14 @@ sub Options ($) {
       'localport' => { 'template' => 'localport=s',
 		       'description' => '--localport <port>      '
 			   . 'Port number to bind to' },
+      'mode' => { 'template' => 'mode=s',
+		  'description' => '--mode <mode>           '
+		      . 'Operation mode (threads, fork or single)' },
       'pidfile' => { 'template' => 'pidfile=s',
 		     'description' => '--pidfile <file>        '
 			 . 'Use <file> as PID file' },
-      'single' => { 'template' => 'single',
-		    'description' => '--single                '
-			. 'Disable concurrent connections (debugging)' },
-      'stderr' => { 'template' => 'stderr',
-		    'description' => '--stderr                '
-			. 'Use stderr instead of syslog for messages' },
       'user' => { 'template' => 'user=s',
-		  'description' => '--user                  '
+		  'description' => '--user <user>           '
 		      . 'Change uid to given user after binding to port.' },
       'version' => { 'template' => 'version',
 		     'description' => '--version               '
@@ -130,13 +125,48 @@ sub Usage ($) {
     print STDERR "Usage: $0 <options>\n\nPossible options are:\n\n";
     my($key);
     foreach $key (sort (keys %$options)) {
-	my($option) = $options->{$key};
-	print STDERR "  ", $option->{'description'}, "\n";
+	my($o) = $options->{$key};
+	print STDERR "  ", $o->{'description'}, "\n" if $o->{'description'};
     }
     print STDERR "\n", $class->Version(), "\n";
     exit(1);
 }
 
+
+
+############################################################################
+#
+#   Name:    ReadConfigFile (Instance method)
+#
+#   Purpose: Reads the config file.
+#
+#   Inputs:  $self - Instance
+#            $file - config file name
+#            $options - Hash of command line options; these are not
+#                really for being processed by this method. We pass
+#                it just in case. The new() method will process them
+#                at a later time.
+#            $args - Array ref of other command line options.
+#
+############################################################################
+
+sub ReadConfigFile {
+    my($self, $file, $options, $args) = @_;
+    if (! -f $file) {
+	$self->Fatal("No such config file: $file");
+    }
+    my $copts = do $file;
+    if ($@) {
+	$self->Fatal("Error while processing config file $file: $@");
+    }
+    if (!$copts || ref($copts) ne 'HASH') {
+	$self->Fatal("Config file $file did not return a hash ref.");
+    }
+    # Override current configuration with config file options.
+    while (my($var, $val) = each %$copts) {
+	$self->{$var} = $val;
+    }
+}
 
 
 ############################################################################
@@ -157,14 +187,18 @@ sub new ($$;$) {
     my($class, $attr, $args) = @_;
     my($self) = $attr ? \%$attr : {};
     bless($self, (ref($class) || $class));
-    my $options = {};
-    if ($args) {
-	my $opt = $class->Options();
-	my @optList = map { $_->{'template'} } values(%$opt);
 
+    my $options = ($self->{'options'} ||= {});
+    $self->{'args'} ||= [];
+    if ($args) {
+	my @optList = map { $_->{'template'} } values(%{$class->Options()});
+
+	local @ARGV = @$args;
 	if (!Getopt::Long::GetOptions($options, @optList)) {
 	    $self->Usage();
 	}
+	@{$self->{'args'}} = @ARGV;
+
 	if ($options->{'help'}) {
 	    $self->Usage();
 	}
@@ -173,144 +207,52 @@ sub new ($$;$) {
 	    exit 1;
 	}
     }
-    $self->{'options'} = $options;
 
-    foreach my $option (qw(single forking user group chroot)) {
-	if (exists($options->{$option})) {
-	    $self->{$option} = $options->{$option};
+    my $file = $options->{'configfile'}  ||  $self->{'configfile'};
+    if ($file) {
+	$self->ReadConfigFile($file, $options, $args);
+    }
+    while (my($var, $val) = each %$options) {
+	$self->{$var} = $val;
+    }
+    
+    if (!defined($self->{'mode'})) {
+	if (eval { require Thread }) {
+	    $self->{'mode'} = 'threads';
+	} else {
+	    my $pid = eval { $self->fork() };
+	    if (!defined($pid)) {
+		$self->{'mode'} = 'single';
+	    } elsif (!$pid) {
+		# This is the child, exit immediately
+		exit(0);
+	    } else {
+		$self->{'mode'} = 'fork';
+	    }
 	}
     }
 
-    if (!defined($self->{'forking'})) {
-	$self->{'forking'} = !eval { require Thread };
-    } elsif (!$self->{'forking'}  &&  !$self->{'single'}) {
+    if ($self->{'mode'} eq 'threads') {
 	require Thread;
+    } elsif ($self->{'mode'} eq 'fork') {
+	# Initialize forking mode ...
+    } elsif ($self->{'mode'} eq 'single') {
+	# Initialize single mode ...
+    } else {
+	$self->Fatal("Unknown operation mode: $self->{'mode'}");
     }
+    $self->Debug("Server starting in operation mode $self->{'mode'}");
 
     $self;
 }
 
 sub Clone ($$) {
-    my($self, $client) = @_;;
-    $self->new({ 'socket' => $client,
-		 'parent' => $self,
-		 'debug' => $self->{'debug'},
-		 'stderr' => $self->{'stderr'},
-		 'forking' => $self->{'forking'},
-		 'single' => $self->{'single'}
-	       }, undef);
-}
-
-
-############################################################################
-#
-#   Name:    Log (Instance method)
-#
-#   Purpose: Does logging
-#
-#   Inputs:  $self - Server instance
-#
-#   Result:  TRUE, if the client has successfully authorized, FALSE
-#            otherwise.
-#
-############################################################################
-
-{
-    my $syslogOpen = 0;
-    my $stderr;
-    my($eventLog, $eventId);
-
-    # The OpenLog method is not thread safe. We trust it will be called
-    # by the server before threading starts. Otherwise we'd need to
-    # embed a "use attrs 'locked'" and loose downwards compatibility
-    # to 5.004.
-    sub OpenLog($) {
-	my($self) = shift;
-	$syslogOpen = 1;
-	if (!ref($self)) {
-	    $stderr = 1;
-	    $syslogOpen = 0;
-	} elsif ($self->{'stderr'}) {
-	    $stderr = $self->{'stderr'};
-	} elsif ($Config::Config{'archname'} =~ /win32/i) {
-	    require Win32::EventLog;
-	    $eventLog = Win32::EventLog->new(ref($self), '');
-	    $eventId = 0;
-	    if (!$eventLog) {
-		die "Cannot open EventLog:" . &Win32::GetLastError();
-	    }
-	} else {
-            eval { require Sys::Syslog };
-	    if ($@) {
-		die "Cannot open Syslog: $@";
-	    }
-	    if (defined(&Sys::Syslog::setlogsock)  &&
-		defined(&Sys::Syslog::_PATH_LOG)) {
-	        Sys::Syslog::setlogsock('unix');
-	    }
-	    &Sys::Syslog::openlog(ref($self) || $self, 'pid',
-				  $self->{'options'}->{'facility'}
-				  || $self->{'facility'} || 'daemon');
-	}
-    }
-
-    sub Log ($$$;@) {
-	my($self, $level, $format, @args) = @_;
-	if (!$syslogOpen) {
-	    $self->OpenLog();
-	    $syslogOpen = 1;
-	}
-	my $tid = (ref($self) && !$self->{'forking'} && !$self->{'single'}) ?
-	    (Thread->self->tid() . ", ") : '';
-	if ($stderr) {
-	    if (ref($stderr)) {
-		$stderr->print(sprintf("$level, $tid$format\n", @args));
-	    } else {
-		printf STDERR ("$level, $tid$format\n", @args);
-	    }
-	} elsif ($eventLog) {
-	    my($type, $category);
-	    if ($level eq 'debug') {
-		$type = Win32::EventLog::EVENTLOG_INFORMATION_TYPE();
-		$category = 10;
-	    } elsif ($level eq 'notice') {
-		$type = Win32::EventLog::EVENTLOG_INFORMATION_TYPE();
-		$category = 20;
-	    } else {
-		$type = Win32::EventLog::EVENTLOG_ERROR_TYPE();
-		$category = 50;
-	    }
-	    $eventLog->Report({
-		'Category' => $category,
-		'EventType' => $type,
-		'EventID' => ++$eventId,
-		'Strings' => sprintf($format, @args),
-		'Data' => $tid
-		});
-	} else {
-	    &Sys::Syslog::syslog($level, "$tid$format", @args);
-	}
-    }
-
-    sub Debug ($$;@) {
-	my $self = shift;
-	if (!ref($self)  ||  !$self->{'debug'}) {
-	    my $fmt = shift;
-	    $self->Log('debug', $fmt, @_);
-	}
-    }
-
-    sub Error ($$;@) {
-	my $self = shift; my $fmt = shift;
-	$self->Log('err', $fmt, @_);
-    }
-
-    sub Fatal ($$;@) {
-	my $self = shift; my $fmt = shift;
-	my $msg = sprintf($fmt, @_);
-	$self->Log('err', $msg);
-	die $msg;
-    }
+    my($proto, $client) = @_;
+    my $self = { %$proto };
+    $self->{'socket'} = $client;
+    $self->{'parent'} = $proto;
+    bless($self, ref($proto));
+    $self;
 }
 
 
@@ -328,6 +270,48 @@ sub Clone ($$) {
 ############################################################################
 
 sub Accept ($) {
+    my $self = shift;
+    my $socket = $self->{'socket'};
+    my $clients = $self->{'clients'};
+
+    # Host based authorization
+    if ($self->{'clients'}) {
+	my ($name, $aliases, $addrtype, $length, @addrs) =
+	    gethostbyaddr($socket->peeraddr(), Socket::AF_INET());
+	my @patterns = @addrs ?
+	    map { Socket::inet_ntoa($_) } @addrs  :
+	    $socket->peerhost();
+	push(@patterns, $name)			if ($name);
+	push(@patterns, split(/ /, $aliases))	if $aliases;
+
+	my $found;
+	OUTER: foreach my $client (@$clients) {
+	    if (!$client->{'mask'}) {
+		$found = $client;
+		last;
+	    }
+	    my $masks = ref($client->{'mask'}) ?
+		$client->{'mask'} : [ $client->{'mask'} ];
+	    foreach my $mask (@$masks) {
+		foreach my $alias (@patterns) {
+		    if ($alias =~ /$mask/) {
+			$found = $client;
+			last OUTER;
+		    }
+		}
+	    }
+	}
+
+	if (!$found  ||  !$found->{'accept'}) {
+	    $self->Error("Access not permitted from %s, port %s",
+			 $socket->sockhost(), $socket->sockport());
+	    return 0;
+	}
+	$self->{'client'} = $found;
+    }
+
+    $self->Debug("Accepting client from %s, port %s",
+		 $socket->sockhost(), $socket->sockport());
     1;
 }
 
@@ -359,12 +343,14 @@ sub Run ($) {
 #
 #   Result:  TRUE or FALSE
 #
-#   Bugs:    Doesn't work with 'forking' => 1
+#   Bugs:    Doesn't work in forking mode.
 #
 ############################################################################
 
 sub Done ($;$) {
-    0;
+    my $self = shift;
+    if (@_) { $self->{'done'} = shift }
+    $self->{'done'}
 }
 
 
@@ -389,15 +375,14 @@ sub _Reaper () {
 
 sub Bind ($) {
     my $self = shift;
-    my($fh, $options);
+    my $fh;
 
-    $options = $self->{'options'} || {};
     if (!$self->{'socket'}  &&
 	!($self->{'socket'} = IO::Socket::INET->new
-	  ( 'LocalAddr' => $options->{'localaddr'} || $self->{'localaddr'},
-	    'LocalPort' => $options->{'localport'} || $self->{'localport'},
-	    'Proto'     => $options->{'proto'} || $self->{'proto'} || 'tcp',
-	    'Listen'    => $options->{'listen'} || $self->{'listen'} || 10,
+	  ( 'LocalAddr' => $self->{'localaddr'},
+	    'LocalPort' => $self->{'localport'},
+	    'Proto'     => $self->{'proto'} || 'tcp',
+	    'Listen'    => $self->{'listen'} || 10,
 	    'Reuse'     => 1))) {
 	$self->Fatal("Cannot create socket: $!");
     }
@@ -444,31 +429,39 @@ sub Bind ($) {
 	if (!$client) {
 	    $self->Fatal("%s server failed to accept: %s",
 			 ref($self), $self->{'socket'}->error() || $!);
+	} else {
+	    $self->Debug("Connection from %s, port %s\n",
+			 $client->sockhost(), $client->sockhost());
 	}
 	my $sth = $self->Clone($client);
+	$self->Debug("Child clone: $sth\n");
 	if (!$sth) {
 	    $client = undef;
 	} else {
 	    my($startFunc) = sub {
-		my($self) = @_;
+		my $self = shift;
 		$self->Debug("New child starting ($self).");
-		if (!$self->Accept()) {
-		    $self->Error('Refusing client');
-		} else {
-		    $self->Log('notice', 'Accepting client');
-		    $self->Run();
+		eval {
+		    if (!$self->Accept()) {
+			$self->Error('Refusing client');
+		    } else {
+			$self->Log('notice', 'Accepting client');
+			$self->Run();
+		    }
+		};
+		if ($@) {
+		    $self->Error("Child died: $@");
 		}
 		$self->Debug("Child terminating.");
 	    };
-	    if ($self->{'single'}) {
+	    if ($self->{'mode'} eq 'single') {
 		&$startFunc($sth);
-	    } elsif (!$self->{'forking'}  &&  eval { require Thread }) {
+	    } elsif ($self->{'mode'} eq 'threads') {
 		my $tid = Thread->new($startFunc, $sth);
 		if(!$tid) {
 		    $self->Error("Failed to create new thread: $!");
 		}
 	    } else {
-		$self->{'forking'} = 1;
 		$SIG{'CHLD'} = \&_Reaper;
 		my $pid = fork();
 		if (!defined($pid)) {
@@ -507,17 +500,24 @@ Net::Daemon - Perl extension for portable daemons
   }
 
 
+=head1 WARNING
+
+THIS IS ALPHA SOFTWARE. It is *only* 'Alpha' because the interface (API)
+is not finalised. The Alpha status does not reflect code quality or
+stability.
+
+
 =head1 DESCRIPTION
 
-Net::Daemon is an approach for writing daemons that are both portable and
-simple. It is designed for Perl 5.005 and threads, but can work with fork()
-and Perl 5.004.
+Net::Daemon is an abstract base class for implementing portable server
+applications in a very simple way. The module is designed for Perl 5.005
+and threads, but can work with fork() and Perl 5.004.
 
-The Net::Daemon class is an abstract class that offers methods for the
-most common tasks a daemon needs: Starting up, logging, accepting clients,
-authorization and doing the true work. You only have to override those
-methods that aren't appropriate for you, but typically inheriting will
-safe you a lot of work anyways.
+The Net::Daemon class offers methods for the most common tasks a daemon
+needs: Starting up, logging, accepting clients, authorization, restricting
+its own environment for security and doing the true work. You only have to
+override those methods that aren't appropriate for you, but typically
+inheriting will safe you a lot of work anyways.
 
 
 =head2 Constructors
@@ -545,54 +545,91 @@ arguments are:
 
 =over 4
 
-=item I<chroot> (B<--chroot>)
+=item I<chroot> (B<--chroot=dir>)
 
-After doing a bind() change root directory to the given directory by
-doing a chroot(). This is usefull for security operations, but it
-restricts programming a lot. For example, you typically have to load
-external Perl extensions before doing a chroot(). See also the --group
-and --user options.
+(UNIX only)  After doing a bind(), change root directory to the given
+directory by doing a chroot(). This is usefull for security operations,
+but it restricts programming a lot. For example, you typically have to
+load external Perl extensions before doing a chroot(), or you need to
+create hard links to Unix sockets. This is typically done in the config
+file, see the --configfile option. See also the --group and --user
+options.
 
-If you don't know chroot(), think of an FTP server where you can see
-a certain directory tree only after logging in.
+If you don't know chroot(), think of an FTP server where you can see a
+certain directory tree only after logging in.
+
+=item I<clients>
+
+An array ref with a list of clients. Clients are hash refs, the attributes
+I<accept> (0 for denying access and 1 for permitting) and I<mask>, a Perl
+regular expression for the clients IP number or its host name. See
+L<"Access control"> below.
+
+=item I<configfile> (B<--configfile=file>)
+
+Net::Daemon supports the use of config files. These files are assumed
+to contain a single hash ref that overrides the arguments of the new
+method. However, command line arguments in turn take precedence over
+the config file. See the L<"Config File"> section below for details
+on the config file.
 
 =item I<debug> (B<--debug>)
 
-Used for turning debugging mode on.
+Turn debugging mode on. Mainly this asserts that logging messages of
+level "debug" are created.
 
-=item I<facility> (B<--facility>)
+=item I<facility> (B<--facility=mode>)
 
-Facility to use for L<Sys::Syslog (3)> (Unix only). The default is
+(UNIX only) Facility to use for L<Sys::Syslog (3)>. The default is
 B<daemon>.
 
-=item I<forking>
-
-Creates a forking daemon instead of using the Thread library (Unix only).
-There are two good reasons for using fork(): You have no multithreaded
-Perl or you need to simplify porting existing applications.
-
-=item I<group> (B<--group>)
+=item I<group> (B<--group=gid>)
 
 After doing a bind(), change the real and effective GID to the given.
 This is usefull, if you want your server to bind to a privileged port
 (<1024), but don't want the server to execute as root. See also
 the --user option.
 
-=item I<localaddr> (B<--localaddr>)
+GID's can be passed as group names or numeric values.
+
+=item I<localaddr> (B<--localaddr=ip>)
 
 By default a daemon is listening to any IP number that a machine
 has. This attribute allows to restrict the server to the given
 IP number.
 
-=item I<localport> (B<--localport>)
+=item I<localport> (B<--localport=port>)
 
-This attribute sets the port on which the daemon is listening.
+This attribute sets the port on which the daemon is listening. It
+must be given somehow, as there's no default.
 
-=item I<logfile> (B<--logfile>)
+=item I<logfile> (B<--logfile=file>)
 
 Be default logging messages will be written to the syslog (Unix) or
 to the event log (Windows NT). On other operating systems you need to
-specify a log file.
+specify a log file. The special value "STDERR" forces logging to
+stderr.
+
+=item I<mode> (B<--mode=modename>)
+
+The Net::Daemon server can run in three different modes, depending on
+the environment.
+
+If you are running Perl 5.005 and did compile it for threads, then
+the server will create a new thread for each connection. The thread
+will execute the server's Run() method and then terminate. This mode
+is the default, you can force it with "--mode=threads".
+
+If threads are not available, but you have a working fork(), then the
+server will behave similar by creating a new process for each connection.
+This mode will be used automatically in the absence of threads or if
+you use the "--mode=fork" option.
+
+Finally there's a single-connection mode: If the server has accepted a
+connection, he will enter the Run() method. No other connections are
+accepted until the Run() method returns. This operation mode is usefull
+if you have neither threads nor fork(), for example on the Macintosh.
+For debugging purposes you can force this mode with "--mode=single".
 
 =item I<options>
 
@@ -605,17 +642,10 @@ When creating an object with B<Clone> the original object becomes
 the parent of the new object. Objects created with B<new> usually
 don't have a parent, thus this attribute is not set.
 
-=item I<pidfile> (B<--pidfile>)
+=item I<pidfile> (B<--pidfile=file>)
 
-If your daemon creates a PID file, you should use this location.
-
-=item I<single> (B<--single>)
-
-Disables concurrent connections. In other words, the server waits for
-a conenction, enters the Run() method without creating a new thread
-or process and can accept further connections only after Run() returns.
-This is usefull for debugging purposes or if you have a system that
-neither supports threads nor fork().
+(UNIX only) If this option is present, a PID file will be created at the
+given location.
 
 =item I<socket>
 
@@ -624,18 +654,14 @@ to the B<Clone> method. If the server object was created with B<new>,
 this attribute can be undef, as long as the B<Bind> method isn't called.
 Sockets are assumed to be IO::Socket objects.
 
-=item I<stderr> (B<--stderr>)
-
-By default Logging is done via L<Sys::Syslog (3)> (Unix) or
-L<Win32::EventLog> (Windows NT). This attribute allows logging
-to be redirected to STDERR instead.
-
-=item I<user> (B<--user>)
+=item I<user> (B<--user=uid>)
 
 After doing a bind(), change the real and effective UID to the given.
 This is usefull, if you want your server to bind to a privileged port
 (<1024), but don't want the server to execute as root. See also
 the --group and the --chroot options.
+
+UID's can be passed as group names or numeric values.
 
 =item I<version> (B<--version>)
 
@@ -644,7 +670,7 @@ be printed and the program exits immediately.
 
 =back
 
-Note that most of these attributes (facility, forking, localaddr, localport,
+Note that most of these attributes (facility, mode, localaddr, localport,
 pidfile, version) are meaningfull only at startup. If you set them later,
 they will be simply ignored. As almost all attributes have appropriate
 defaults, you will typically use the B<localport> attribute only.
@@ -678,6 +704,82 @@ The B<Usage> method prints a list of all possible options and returns.
 It uses the B<Version> method for printing program name and version.
 
 
+=head2 Config File
+
+If the config file option is set in the command line options or in the
+in the "new" args, then the method
+
+  $server->ReadConfigFile($file, $options, $args)
+
+is invoked. By default the config file is expected to contain Perl source
+that returns a hash ref of options. These options override the "new"
+args and will in turn be overwritten by the command line options, as
+present in the $options hash ref.
+
+A typical config file might look as follows, we use the DBI::ProxyServer
+as an example:
+
+    # Load external modules; this is not required unless you use
+    # the chroot() option.
+    #require DBD::mysql;
+    #require DBD::CSV;
+
+    {
+	# 'chroot' => '/var/dbiproxy',
+	'facility' => 'daemon',
+	'pidfile' => '/var/dbiproxy/dbiproxy.pid',
+	'user' => 'nobody',
+	'group' => 'nobody',
+	'localport' => '1003',
+	'mode' => 'fork'
+
+	# Access control
+        'clients' => [
+	    # Accept the local
+	    {
+		'mask' => '^192\.168\.1\.\d+$',
+                'accept' => 1
+            },
+	    # Accept myhost.company.com
+	    {
+		'mask' => '^myhost\.company\.com$',
+                'accept' => 1
+            }
+	    # Deny everything else
+	    {
+		'mask' => '.*',
+		'accept' => 0
+	    }
+        ]
+    }
+
+
+=head2 Access control
+
+The Net::Daemon package supports a host based access control scheme. By
+default access is open for anyone. However, if you create an attribute
+$self->{'clients'}, typically in the config file, then access control
+is disabled by default. For any connection the client list is processed:
+The clients attribute is an array ref to a list of hash refs. Any of the
+hash refs may contain arbitrary attributes, including the following:
+
+=over 8
+
+=item mask
+
+A Perl regular expression that has to match the clients IP number or
+its host name. The list is processed from the left to the right, whenever
+a 'mask' attribute matches, then the related hash ref is choosen as
+client and processing the client list stops.
+
+=item accept
+
+This may be set to true or false (default when omitting the attribute),
+the former means accepting the client.
+
+=back
+
+
 =head2 Event logging
 
   $server->Log($level, $format, @args);
@@ -694,6 +796,8 @@ The B<Debug> and B<Error> methods are shorthands for calling
 B<Log> with a level of debug and err, respectively. The B<Fatal>
 method is like B<Error>, except it additionally throws the given
 message as exception.
+
+See L<Net::Daemon::Log(3)> for details.
 
 
 =head2 Flow of control
@@ -845,7 +949,8 @@ given base.
 
 =head1 SEE ALSO
 
-L<RPC::pServer(3)>, L<Netserver::Generic(3)>
+L<RPC::pServer(3)>, L<Netserver::Generic(3)>, L<Net::Daemon::Log(3)>,
+L<Net::Daemon::Test(3)>
 
 =cut
 

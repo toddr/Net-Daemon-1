@@ -1,0 +1,15 @@
+1998-10-28  Jochen Wiedmann  <joe@ispsoft.de> (0.13)
+
+	* lib/Net/Daemon.pm: Some minor modifications for the DBI Proxy.
+
+1998-10-25  Jochen Wiedmann  <joe@ispsoft.de> (0.12)
+
+	* Moved OpenLog, Log, Debug, Error and Fatal to Net::Daemon::Log.
+
+1998-10-17  Jochen Wiedmann  <joe@ispsoft.de> (0.11)
+
+	* Daemon.pm: Added --configfile.
+	* Daemon.pm: Removed --forking and --single in favour of --mode.
+	* Daemon.pm: Removed --stderr in favour of --logfile=stderr.
+	* Daemon.pm: Added $self->{'clients'}, recognizes 'mask' and
+	  'accept' attributes.
