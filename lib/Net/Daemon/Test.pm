@@ -1,5 +1,7 @@
 # -*- perl -*-
 #
+#   $Id: Test.pm,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
 #   Copyright (C) 1998, Jochen Wiedmann
@@ -291,10 +293,9 @@ sub Child ($$@) {
     }
 
     print "1..$numTests\n" if defined($numTests);
-    for (my $i = 0;  $i < 10  &&  ! -f 'ndtest.prt';  $i++) {
-	sleep 1;
+    for (my $secs = 20;  $secs  &&  ! -s 'ndtest.prt';  $secs -= sleep 1) {
     }
-    if (! -f 'ndtest.prt') {
+    if (! -s 'ndtest.prt') {
 	die "Server process didn't create a file 'ndtest.prt'.";
     }
     # Sleep another second in case the server is still creating the

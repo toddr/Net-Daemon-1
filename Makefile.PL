@@ -1,4 +1,7 @@
 # -*- perl -*-
+#
+# $Id: Makefile.PL,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#
 
 use ExtUtils::MakeMaker;
 
@@ -25,4 +28,15 @@ package MY;
 sub libscan {
     my ($self, $path) = @_;
     ($path =~ /\~$/) ? undef : $path;
+}
+
+sub postamble {
+    qq{
+
+pm_to_blib: README
+
+README: lib/Net/Daemon.pm
+\tpod2text lib/Net/Daemon.pm >README
+
+}
 }
