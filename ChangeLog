@@ -1,3 +1,9 @@
+1999-06-27  Jochen Wiedmann  <joe@ispsoft.de> (0.21)
+
+	* lib/Net/Daemon.pm (Bind): Under Solaris the accept() call
+	  can fail with a value of EINTR if a SIGCHLD was catched.
+	  This is trapped now. Thanks to Brady Montz <bradym@cs.arizona.edu>.
+
 1999-03-20  Liraz Siri       <liraz_siri@usa.net> (0.20)
 	* skipped to 0.2 since I've independantly made modifications,
 	  and I'd like to avoid conflict.
