@@ -1,6 +1,6 @@
 # -*- perl -*-
 #
-#   $Id: Test.pm,v 1.2 1999/04/09 19:56:23 joe Exp $
+#   $Id: Test.pm,v 1.2 1999/08/12 14:28:57 joe Exp $
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -36,6 +36,7 @@ require 5.004;
 
 use Net::Daemon ();
 use Symbol ();
+use File::Basename ();
 
 
 $Net::Daemon::Test::VERSION = '0.01';
@@ -199,6 +200,7 @@ sub Bind ($) {
 	!close($fh)) {
 	die "Error while creating 'ndtest.prt': $!";
     }
+    $self->Debug("Created ndtest.prt with port $port\n");
     $self->{'socket'} = $socket;
 
     if (my $timeout = $self->{'timeout'}) {
@@ -254,10 +256,13 @@ sub Child ($$@) {
 	require Win32::Process;
 	my $proc = $_[0];
 
-	# Win32::Process seems to require an absolute path
+	# Win32::Process seems to require an absolute path; this includes
+	# a program extension like ".exe"
 	my $path;
 	my @pdirs;
-	if ($proc !~ /\./) {
+
+	File::Basename::fileparse_set_fstype("MSWin32");
+	if (File::Basename::basename($proc) !~ /\./) {
 	    $proc .= ".exe";
 	}
 	if ($proc !~ /^\w\:\\/  &&  $proc !~ /^\\/) {

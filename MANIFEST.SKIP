@@ -4,3 +4,5 @@
 ^log$
 ^pm_to_blib$
 ^t/config$
+\bCVS\b
+^Net-Daemon-\d+\.\d+/

@@ -1,13 +1,14 @@
 # -*- perl -*-
 #
-#   $Id: config.t,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#   $Id: config.t,v 1.2 1999/08/12 14:28:59 joe Exp $
 #
 require 5.004;
 use strict;
 
-require IO::Socket;
-require Config;
-require Net::Daemon::Test;
+use IO::Socket ();
+use Config ();
+use Net::Daemon::Test ();
+use Socket ();
 
 
 my $CONFIG_FILE = "t/config";
@@ -59,7 +60,6 @@ $ok = RunTest(q/
     }/, undef);
 print(($ok ? "" : "not "), "ok 3\n");
 
-require Socket;
 my $hostname = gethostbyaddr(Socket::inet_aton("127.0.0.1"),
 			   Socket::AF_INET());
 if ($hostname) {

@@ -118,10 +118,31 @@ DESCRIPTION
         must be given somehow, as there's no default.
 
     *logfile* (--logfile=file)
-        Be default logging messages will be written to the syslog (Unix) or
+        By default logging messages will be written to the syslog (Unix) or
         to the event log (Windows NT). On other operating systems you need
         to specify a log file. The special value "STDERR" forces logging to
         stderr.
+
+    *loop-child* (--loop-child)
+        This option forces creation of a new child for loops. (See the
+        *loop-timeout* option.) By default the loops are serialized.
+
+    *loop-timeout* (--loop-timeout=secs)
+        Some servers need to take an action from time to time. For example
+        the Net::Daemon::Spooler attempts to empty its spooling queue every
+        5 minutes. If this option is set to a positive value (zero being the
+        default), then the server will call its Loop method every "loop-
+        timeout" seconds.
+
+        Don't trust too much on the precision of the interval: It depends on
+        a number of factors, in particular the execution time of the Loop()
+        method. The loop is implemented by using the *select* function. If
+        you need an exact interval, you should better try to use the alarm()
+        function and a signal handler. (And don't forget to look at the
+        *catchint* option!)
+
+        It is recommended to use the *loop-child* option in conjunction with
+        *loop-timeout*.
 
     *mode* (--mode=modename)
         The Net::Daemon server can run in three different modes, depending

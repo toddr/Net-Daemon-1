@@ -1,16 +1,16 @@
 # -*- perl -*-
 #
-#   $Id: threadm.t,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#   $Id: threadm.t,v 1.2 1999/08/12 14:28:59 joe Exp $
 #
 
 require 5.004;
 use strict;
 
-require IO::Socket;
-require Config;
-require Net::Daemon::Test;
-require Fcntl;
-require Config;
+use IO::Socket ();
+use Config ();
+use Net::Daemon::Test ();
+use Fcntl ();
+use Config ();
 
 
 $| = 1;
@@ -90,7 +90,8 @@ for (my $i = 0;  $i < 10;  $i++) {
     }
     push(@threads, $tid);
 }
-alarm 120;
+eval { alarm 1; alarm 0 };
+alarm 120 unless $@;
 for (my $i = 1;  $i <= 10;  $i++) {
     my $tid = shift @threads;
     if ($tid->join()) {

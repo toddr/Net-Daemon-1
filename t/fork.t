@@ -1,14 +1,14 @@
 # -*- perl -*-
 #
-#   $Id: fork.t,v 1.1.1.1 1999/01/06 20:21:06 joe Exp $
+#   $Id: fork.t,v 1.2 1999/08/12 14:28:59 joe Exp $
 #
 
 require 5.004;
 use strict;
 
-require IO::Socket;
-require Config;
-require Net::Daemon::Test;
+use IO::Socket ();
+use Config ();
+use Net::Daemon::Test ();
 
 my $numTests = 5;
 
@@ -16,7 +16,7 @@ my $numTests = 5;
 my($handle, $port) = Net::Daemon::Test->Child($numTests,
 					      $^X, '-Iblib/lib', '-Iblib/arch',
 					      't/server', '--mode=fork',
-					      '--timeout', 60);
+					      '--debug', '--timeout', 60);
 
 print "Making first connection to port $port...\n";
 my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
