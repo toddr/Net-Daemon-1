@@ -52,6 +52,15 @@ DESCRIPTION
     Possible object attributes and the corresponding command line arguments
     are:
 
+    *catchint* (--nocatchint)
+        On some systems, in particular Solaris, the functions accept(),
+        read() and so on are not safe against interrupts by signals. For
+        example, if the user raises a USR1 signal (as typically used to
+        reread config files), then the function returns an error EINTR. If
+        the *catchint* option is on (by default it is, use --nocatchint to
+        turn this off), then the package will ignore EINTR errors whereever
+        possible.
+
     *chroot* (--chroot=dir)
         (UNIX only) After doing a bind(), change root directory to the given
         directory by doing a chroot(). This is usefull for security

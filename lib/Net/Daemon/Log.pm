@@ -44,9 +44,9 @@ $Net::Daemon::Log::VERSION = '0.01';
 
 
 sub OpenLog($) {
-    my($self) = shift;
-    return 1                   unless ref($self);
-    return $self->{'logfile'}  if defined($self->{'logfile'});
+    my $self = shift;
+    return 1 unless ref($self);
+    return $self->{'logfile'} if defined($self->{'logfile'});
     if ($Config::Config{'archname'} =~ /win32/i) {
 	require Win32::EventLog;
 	$self->{'eventLog'} = Win32::EventLog->new(ref($self), '')
@@ -69,7 +69,7 @@ sub OpenLog($) {
 
 sub Log ($$$;@) {
     my($self, $level, $format, @args) = @_;
-    my $logfile = !ref($self)  ||  $self->OpenLog();
+    my $logfile = !ref($self) || $self->OpenLog();
 
     my $tid = (ref($self)  &&  $self->{'mode'}  &&
 	       ($self->{'mode'} eq 'threads'))

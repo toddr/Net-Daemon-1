@@ -28,11 +28,12 @@ use Symbol ();
 use IO::Socket ();
 use Config ();
 use Net::Daemon::Log ();
+use POSIX ();
 
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.23';
+$Net::Daemon::VERSION = '0.24';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -57,7 +58,13 @@ $Net::Daemon::RegExpLock = 1;
 ############################################################################
 
 sub Options ($) {
-    { 'chroot' => { 'template' => 'chroot=s',
+    { 'catchint' => { 'template' => 'catchint!',
+		      'description' => '--nocatchint            '
+		          . "Try to catch interrupts when calling system\n"
+		          . '                        '
+		          . 'functions like bind(), recv()), ...'
+		    },
+      'chroot' => { 'template' => 'chroot=s',
 		    'description' =>  '--chroot <dir>          '
 			. 'Change rootdir to given after binding to port.' },
       'configfile' => { 'template' => 'configfile=s',
@@ -259,6 +266,7 @@ sub new ($$;$) {
     } else {
 	$self->Fatal("Unknown operation mode: $self->{'mode'}");
     }
+    $self->{'catchint'} = 1 unless exists($self->{'catchint'});
     $self->Debug("Server starting in operation mode $self->{'mode'}");
 
     $self;
@@ -403,7 +411,6 @@ sub Done ($;$) {
 #
 ############################################################################
 
-
 sub Bind ($) {
     my $self = shift;
     my $fh;
@@ -443,6 +450,15 @@ sub Bind ($) {
     }
     $self->Log('notice', "Server starting");
 
+    if ((my $pidfile = ($self->{'pidfile'} || '')) ne 'none') {
+	$self->Debug("Writing PID to $pidfile");
+	my $fh = Symbol::gensym();
+	$self->Fatal("Cannot write to $pidfile: $!")
+	    unless (open (OUT, ">$pidfile")
+		    and (print OUT "$$\n")
+		    and close(OUT));
+    }
+
     if (my $dir = $self->{'chroot'}) {
 	$self->Debug("Changing root directory to $dir");
 	if (!chroot($dir)) {
@@ -474,21 +490,13 @@ sub Bind ($) {
 	$< = ($> = $user);
     }
 
-    if (my $pidfile = $self->{'pidfile'}) {
-	$self->Debug("Writing PID to $pidfile");
-	my $fh = Symbol::gensym();
-	$self->Fatal("Cannot write to $pidfile: $!")
-	    unless (open (OUT, ">$pidfile")
-		    and (print OUT "$$\n")
-		    and close(OUT));
-    }
-
     my($client);
     while (!$self->Done()) {
 	undef $child_pid;
 	my $client = $self->{'socket'}->accept();
 	if (!$client) {
 	    next if $child_pid;
+	    next if $! == POSIX::EINTR() and $self->{'catchint'};
 	    $self->Fatal("%s server failed to accept: %s",
 			 ref($self), $self->{'socket'}->error() || $!);
 	}
@@ -613,6 +621,16 @@ Possible object attributes and the corresponding command line
 arguments are:
 
 =over 4
+
+=item I<catchint> (B<--nocatchint>)
+
+On some systems, in particular Solaris, the functions accept(),
+read() and so on are not safe against interrupts by signals. For
+example, if the user raises a USR1 signal (as typically used to
+reread config files), then the function returns an error EINTR.
+If the I<catchint> option is on (by default it is, use
+B<--nocatchint> to turn this off), then the package will ignore
+EINTR errors whereever possible.
 
 =item I<chroot> (B<--chroot=dir>)
 

@@ -15,8 +15,8 @@ use lib qw(blib/arch blib/lib);
 
 $| = 1;
 
-require Net::Daemon::Test;
-require IO::Socket;
+use Net::Daemon::Test ();
+use IO::Socket ();
 
 package Multiplier;
 
@@ -83,4 +83,6 @@ package main;
 my $server = Multiplier->new({ 'pidfile' => 'none'
 			       }, \@ARGV);
 
-$server->Bind();
+eval { $server->Bind() };
+
+print STDERR "Server died: $@\n" if $@;
