@@ -442,6 +442,17 @@ EXAMPLE
                                     'localport' => 2000}, \@ARGV);
       $server->Bind();
 
+KNOWN PROBLEMS
+    Most, or even any, known problems are related to the Sys::Syslog module
+    which is by default used for logging events under Unix. I'll quote some
+    examples:
+
+    Usage: Sys::Syslog::_PATH_LOG at ...
+        This problem is treated in perl bug 20000712.003. A workaround is
+        changing line 277 of Syslog.pm to
+
+          my $syslog = &_PATH_LOG() || croak "_PATH_LOG not found in syslog.ph";
+
 AUTHOR AND COPYRIGHT
       Net::Daemon is Copyright (C) 1998, Jochen Wiedmann
                                          Am Eisteich 9
