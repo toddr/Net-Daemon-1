@@ -162,7 +162,7 @@ Net::Daemon::Log - Utility functions for logging
   $self->Error("This is an error message");
 
   # Fatal error messages (implies 'die')
-  $self->Error("This is a fatal error message");
+  $self->Fatal("This is a fatal error message");
 
 
 =head1 WARNING

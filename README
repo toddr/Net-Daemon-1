@@ -351,7 +351,7 @@ EXAMPLE
     As an example we'll write a simple calculator server. After connecting
     to this server you may type expressions, one per line. The server
     evaluates the expressions and prints the result. (Note this is an
-    example, in real life we'd never implement sucj a security hole. :-)
+    example, in real life we'd never implement such a security hole. :-)
 
     For the purpose of example we add a command line option *--base* that
     takes 'hex', 'oct' or 'dec' as values: The servers output will use the
