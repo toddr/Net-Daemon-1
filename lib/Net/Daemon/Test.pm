@@ -34,7 +34,8 @@ package Net::Daemon::Test;
 use strict;
 require 5.004;
 
-require Net::Daemon;
+use Net::Daemon ();
+use Symbol ();
 
 
 $Net::Daemon::Test::VERSION = '0.01';
@@ -52,7 +53,7 @@ Net::Daemon::Test - support functions for testing Net::Daemon servers
     #
     # Create a subclass of Net::Daemon::Test, which in turn is
     # a subclass of Net::Daemon
-    require Net::Daemon::Test;
+    use Net::Daemon::Test ();
     package MyDaemon;
     @MyDaemon::ISA = qw(Net::Daemon::Test);
 
@@ -76,7 +77,7 @@ Net::Daemon::Test - support functions for testing Net::Daemon servers
     #
     # Call the Child method to spawn a child. Don't forget to use
     # the timeout option.
-    require Net::Daemon::Test;
+    use Net::Daemon::Test ();
 
     my($handle, $port) = eval {
         Net::Daemon::Test->Child(5, # Number of subtests
@@ -192,7 +193,6 @@ sub Bind ($) {
 
     # Create the "ndtest.prt" file so that the child knows to what
     # port it may connect.
-    require Symbol;
     my $fh = Symbol::gensym();
     if (!open($fh, ">ndtest.prt")  ||
 	!(print $fh $port)  ||
@@ -314,7 +314,6 @@ sub Child ($$@) {
     # Sleep another second in case the server is still creating the
     # file with the port number ...
     sleep 1;
-    require Symbol;
     my $fh = Symbol::gensym();
     my $port;
     if (!open($fh, "<ndtest.prt")  ||

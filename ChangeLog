@@ -1,3 +1,10 @@
+1999-07-12  Jochen Wiedmann  <joe@ispsoft.de> (0.24)
+
+	* lib/Net/Daemon.pm (Bind): Moved PID file creation before
+	  chroot. Benjamin Ritcey <Benjamin.Ritcey@tfn.com>
+	* lib/Net/Daemon.pm (Bind): Added use of the Proc::Daemon::Init
+	  module, if present.
+
 1999-07-02  Jochen Wiedmann <joe@ispsoft.de> (0.23)
 
 	* lib/Net/Daemon.pm (new): Fixed automatic mode detection.
