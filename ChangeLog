@@ -1,3 +1,9 @@
+2000-12-22  Jochen Wiedmann  <joe@ispsoft.de> (0.34)
+
+	* Changed "kill 1" to "kill 'TERM'" when working with fork.
+	  Thanks to Torsten Foertsch (torsten.foertsch), in particular
+	  for his explanations on the rationale behind SIGHUP.
+
 2000-11-07  Jochen Wiedmann  <joe@ispsoft.de> (0.32)
 	
 	* lib/Net/Daemon.pm: SigChildHandler is now always returning
