@@ -6,7 +6,12 @@
 #
 
 require 5.004;
-require Net::Daemon;
+use strict;
+
+use lib qw(blib/arch blib/lib);
+
+
+require Net::Daemon::Test;
 require IO::Socket;
 
 package Multiplier;
@@ -14,36 +19,15 @@ package Multiplier;
 use vars qw($VERSION @ISA);
 
 $VERSION = '0.01';
-@ISA = qw(Net::Daemon);
+@ISA = qw(Net::Daemon::Test);
 
-
-#   We add an additional command line option "--forking"
-sub Options ($) {
-    my($self) = @_;
-    my($options) = $self->SUPER::Options();
-    $options->{'forking'} = { 'template' => 'forking',
-			      'description' => '--forking               '
-				  . 'Uses fork() instead of Threads'
-			      };
-    $options;
-}
 
 sub Version ($) {
     return "Multiplier - A simple network calculator; 1998, Jochen Wiedmann";
 }
 
-sub new ($$;$) {
-    my($class, $attr, $args) = @_;
-    my($self) = $class->SUPER::new($attr, $args);
-    if ($self  &&  $self->{'options'}->{'forking'}) {
-	$self->{'forking'} = 1;
-    }
-    $self;
-}
-
-
 sub Run ($) {
-    my($self) = @_;
+    my $self = shift;
     my($line, $sock);
     $sock = $self->{'socket'};
     while (1) {
@@ -56,9 +40,10 @@ sub Run ($) {
 	    return;
 	}
 	if ($line =~ /(\d+)/) {
+	    $self->Debug("Server: Got number $1\n");
 	    my($num) = $1*2;
-	    if (!$sock->print("$num\n")) {
-		$self->Log('err', "Client connection error %s",
+	    if (!$sock->print("$num\n")  ||  !$sock->flush()) {
+		$self->Log('err', "Client connection error %s while writing",
 			   $sock->error());
 		$sock->close();
 		return;
@@ -70,16 +55,8 @@ sub Run ($) {
 
 package main;
 
-my($server) = Multiplier->new({ 'localport' => 37112,
-				'pidfile' => 'none'
-				}, \@ARGV);
-if (!$server->{'forking'}) {
-    $@ = ''; eval { require Thread; };
-    if ($@) {
-	$server->{'forking'} = 1;
-    }
-}
-if ($server->{'forking'}) {
-    $SIG{'CHLD'} = \&Net::Daemon::_Reaper;
-}
+my $server = Multiplier->new({ 'localport' => 37112,
+			       'pidfile' => 'none'
+			       }, \@ARGV);
+
 $server->Bind();
