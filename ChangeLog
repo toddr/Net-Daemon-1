@@ -1,3 +1,9 @@
+2001-11-12  Jochen Wiedmann  <joe@ispsoft.de> (0.36)
+
+	* For whatever reason, Thread->self returns undef
+	  under ActivePerl. This is now handled properly
+	   in Net::Daemon::Log. 
+
 2001-04-08  Jochen Wiedmann  <joe@ispsoft.de> (0.35)
 
 	* Added preforked childs to mode 'single'. (Gerald Richter,

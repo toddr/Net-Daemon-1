@@ -72,9 +72,12 @@ sub Log ($$$;@) {
     my($self, $level, $format, @args) = @_;
     my $logfile = !ref($self) || $self->OpenLog();
 
-    my $tid = (ref($self)  &&  $self->{'mode'}  &&
-	       ($self->{'mode'} eq 'threads'))
-	? (Thread->self->tid() . ", ") : '';
+    my $tid = '';
+    if (ref($self)  &&  $self->{'mode'}  &&  $self->{'mode'} eq 'threads') {
+      if (my $sthread = Thread->self()) {
+	  $tid = $sthread->tid() . ", ";
+      }
+    }
     if ($logfile) {
 	my $logtime = $self->LogTime();
 	if (ref($logfile)) {

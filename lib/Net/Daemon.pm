@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.35';
+$Net::Daemon::VERSION = '0.36';
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
