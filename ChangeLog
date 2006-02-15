@@ -1,3 +1,11 @@
+2006-02-15  Jochen Wiedmann  <jwied@cpan.org> (0.39)
+
+        * t/forkm.t: Hopefully, I finally got rid of the
+	  problem with the forking tests. It seems, that
+	  the perlipc manual got updated in the past years,
+	  most possibly for the same reason: A child handler
+	  must be written to catch childs in a loop.
+
 2003-11-10  Jochen Wiedmann  <joe@ispsoft.de> (0.38)
 
 	* lib/Net/Daemon.pm: It is now possible to specify

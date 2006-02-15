@@ -20,3 +20,4 @@ t/single.t		Test of a single-mode server
 t/thread.t		Test of a multithreaded server
 t/threadm.t		Test of a multithreaded server with multiple clients
 t/unix.t		Test for Unix sockets
+META.yml                                 Module meta-data (added by MakeMaker)
