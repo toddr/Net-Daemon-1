@@ -1,4 +1,7 @@
 
+2007-05-23  Malcolm Nooning  <m.nooning@comcast.net> (0.41)
+        * t/forkm.t: When all ten childs are exited,
+	  sub CatchChild will now exit.
 2007-05-16  Malcolm Nooning  <m.nooning@comcast.net> (0.40)
 	* t/threadm.t: The tests are now skipped with a
 	  passing indication when usethreads is defined, which
