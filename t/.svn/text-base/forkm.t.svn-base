@@ -134,7 +134,11 @@ sub CatchChild {
 	    &log("CatchChild: $pid");
 	    if (exists $childs{$pid}) {
 		delete $childs{$pid};
-		ShowResults() if (keys(%childs) == 0);
+                if (keys(%childs) == 0) {
+                    # We ae done when the last of our ten childs are gone.
+                    ShowResults();
+                    last;
+		}
 	    }
 	}
     }
