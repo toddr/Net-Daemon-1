@@ -1,4 +1,8 @@
 
+2007-06-16  Malcolm Nooning  <m.nooning@comcast.net> (0.42)
+        * t/forkm.t: Added a wait so that the parent will not loop
+	  around and make another child until the previous child has
+	  been destroyed.
 2007-05-23  Malcolm Nooning  <m.nooning@comcast.net> (0.41)
         * t/forkm.t: When all ten childs are exited,
 	  sub CatchChild will now exit.
