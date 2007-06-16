@@ -30,6 +30,7 @@ eval {
     if (defined($pid)) {
       if (!$pid) { exit 0; } # Child
     }
+    wait;
     $ok = 1;
   }
 };
