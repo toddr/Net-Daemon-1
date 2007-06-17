@@ -1,4 +1,6 @@
 
+2007-06-17  Malcolm Nooning  <m.nooning@comcast.net> (0.43)
+        * lib/Net/Daemon.pm  Needed to up the VERSION number
 2007-06-16  Malcolm Nooning  <m.nooning@comcast.net> (0.42)
         * t/forkm.t: Added a wait so that the parent will not loop
 	  around and make another child until the previous child has
