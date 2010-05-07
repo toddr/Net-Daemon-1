@@ -1,7 +1,7 @@
 2010-05-06 Todd Rinaldo <toddr@cpan.org> (0.44)
 	* Cleanup repo with accidental tar files in it.
 	* Remove windows ^M Chars
-	* 
+	* Rt 28652 - Net::Daemon tests hang on IRIX due to bad syslog special case.
 2007-06-17  Malcolm Nooning  <m.nooning@comcast.net> (0.43)
         * lib/Net/Daemon.pm  Needed to up the VERSION number
 2007-06-16  Malcolm Nooning  <m.nooning@comcast.net> (0.42)

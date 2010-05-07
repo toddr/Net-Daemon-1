@@ -22,6 +22,10 @@ WriteMakefile(
     clean               => { FILES => 'Net-Daemon-*' },
     realclean           => { 'FILES' => 't/config ndtest.prt Net-Daemon-*' },
     META_MERGE  => {
+	recommends => {
+            'Sys::Syslog' => 0,
+	    ($^O =~ m/MSWin32/i) ? ( 'Win32::EventLog' => 0) : (),
+        },
         resources => {
             license => 'http://dev.perl.org/licenses/',
             homepage => 'http://wiki.github.com/toddr/Net-Daemon',
