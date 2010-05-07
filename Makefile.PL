@@ -1,27 +1,36 @@
-# -*- perl -*-
-#
-# $Id: Makefile.PL,v 1.2 1999/08/12 14:28:53 joe Exp $
-#
-
+#!/usr/bin/perl
 use ExtUtils::MakeMaker;
 
-my %opts = (
-    'NAME'	=> 'Net::Daemon',
-    'VERSION_FROM' => 'lib/Net/Daemon.pm', # finds $VERSION
+WriteMakefile(
+    NAME	  => 'Net::Daemon',
+    AUTHOR        => 'Jochen Wiedmann <joe@ispsoft.de>',
+    VERSION_FROM  => 'lib/Net/Daemon.pm',
+    ABSTRACT_FROM => 'lib/Net/Daemon.pm', 
+    PL_FILES      => {},
+    ($ExtUtils::MakeMaker::VERSION >= 6.3002 ? ('LICENSE'        => 'perl', ) : ()),
+    PREREQ_PM => {
+        'Symbol'  => 0,
+        'File::Basename' => 0,
+	'Getopt::Long' => 0,
+	'IO::Socket' => 0,
+    },
     'dist' => { 'DIST_DEFAULT' => q[all tardist],
 	        'COMPRESS' => q[gzip -9vf],
 	        'SUFFIX' => q[.gz]
 	    },
-    'realclean' => { 'FILES' => 't/config ndtest.prt' }
+    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    clean               => { FILES => 'Net-Daemon-*' },
+    realclean           => { 'FILES' => 't/config ndtest.prt Net-Daemon-*' },
+    META_MERGE  => {
+        resources => {
+            license => 'http://dev.perl.org/licenses/',
+            homepage => 'http://wiki.github.com/toddr/Net-Daemon',
+#            bugtracker => 'https://rt.cpan.org/Public/Dist/Display.html?Name=Net-Daemon',
+            repository => 'http://github.com/toddr/Net-Daemon',
+#            MailingList => 'http://groups.google.com/group/Net-Daemon',
+        },
+    },
 );
-
-if ($ExtUtils::MakeMaker::VERSION >= 5.43) {
-    $opts{ABSTRACT_FROM} = 'lib/Net/Daemon.pm';
-    $opts{AUTHOR} = 'Jochen Wiedmann (joe@ispsoft.de)';
-}
-
-WriteMakefile(%opts);
-
 
 package MY;
 
