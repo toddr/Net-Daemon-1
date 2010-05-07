@@ -39,7 +39,7 @@ use Symbol ();
 use File::Basename ();
 
 
-$Net::Daemon::Test::VERSION = '0.03';
+$Net::Daemon::Test::VERSION = '0.04';
 @Net::Daemon::Test::ISA = qw(Net::Daemon);
 
 

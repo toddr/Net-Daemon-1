@@ -26,7 +26,7 @@ use strict;
 
 package Net::Daemon::Log;
 
-$Net::Daemon::Log::VERSION = '0.01';
+$Net::Daemon::Log::VERSION = '0.02';
 
 
 ############################################################################
