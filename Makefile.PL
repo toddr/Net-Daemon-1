@@ -13,6 +13,7 @@ WriteMakefile(
         'File::Basename' => 0,
 	'Getopt::Long' => 0,
 	'IO::Socket' => 0,
+	'Test::More' => 0,
     },
     'dist' => { 'DIST_DEFAULT' => q[all tardist],
 	        'COMPRESS' => q[gzip -9vf],
