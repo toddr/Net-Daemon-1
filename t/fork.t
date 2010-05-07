@@ -1,81 +1,69 @@
-# -*- perl -*-
-#
-#   $Id: fork.t,v 1.2 1999/08/12 14:28:59 joe Exp $
-#
+BEGIN {
+    require 5.004;
+    use strict;
+    use warnings;
+    use Test::More;
+    if($^O eq "MSWin32") {
+        plan skip_all => 'Forks broken in Windows';
+        exit;
+    }
 
-require 5.004;
-use strict;
+    my $fork_ok;
+    eval {
+        my $pid = fork();
+        if (defined($pid)) {
+            if (!$pid) { exit 0; } # Child
+        }
+        $fork_ok = 1;
+    };
+
+    if(!$fork_ok) {
+        plan skip_all => "Forking doesn't work on this system?";
+        exit;
+    }
+    
+    plan tests => 5;
+}
+
 use IO::Socket ();
 use Config ();
 use Net::Daemon::Test ();
 
-my $ok;
-eval {
-  if ($^O ne "MSWin32") {
-    my $pid = fork();
-    if (defined($pid)) {
-      if (!$pid) { exit 0; } # Child
-    }
-    $ok = 1;
-  }
-};
-if (!$ok) {
-  print "1..0\n";
-  exit 0;
-}
-
-
-my $numTests = 5;
-
-
-my($handle, $port);
-if (@ARGV) {
-    $port = shift @ARGV;
-} else {
-    ($handle, $port) = Net::Daemon::Test->Child($numTests,
+my ($handle, $port) = Net::Daemon::Test->Child(undef,
 						$^X, '-Iblib/lib',
 						'-Iblib/arch',
 						't/server', '--mode=fork',
 						'--debug', '--timeout', 60);
-}
 
-print "Making first connection to port $port...\n";
-my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
-			       'PeerPort' => $port);
-printf("%s 1\n", $fh ? "ok" : "not ok");
-printf("%s 2\n", $fh->close() ? "ok" : "not ok");
-print "Making second connection to port $port...\n";
-$fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
-			    'PeerPort' => $port);
-printf("%s 3\n", $fh ? "ok" : "not ok");
+diag("Making first connection to port $port...");
+my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1', 'PeerPort' => $port);
+ok($fh, "Connection to port $port succeeds");
+ok($fh->close(), "Disconnect from port $port succeeds");
+
+diag("Making second connection to port $port");
+$fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1', 'PeerPort' => $port);
+ok($fh, "Connection to port $port succeeds");
 eval {
     for (my $i = 0;  $i < 20;  $i++) {
-	print "Writing number: $i\n";
-	if (!$fh->print("$i\n")  ||  !$fh->flush()) {
-	    die "Client: Error while writing number $i: " . $fh->error()
-		. " ($!)";
-	}
-	print "Written.\n";
-	my($line) = $fh->getline();
-	if (!defined($line)) {
-	    die "Client: Error while reading number $i: " . $fh->error()
-		. " ($!)";
-	}
-	if ($line !~ /(\d+)/  ||  $1 != $i*2) {
-	    die "Wrong response, exptected " . ($i*2) . ", got $line";
-	}
+        diag("Writing number: $i");
+	    if (!$fh->print("$i\n")  ||  !$fh->flush()) {
+	        die "Client: Error while writing number $i: " . $fh->error() . " ($!)";
+        }
+        diag("Written.");
+	   
+        my($line) = $fh->getline();
+        if (!defined($line)) {
+            die "Client: Error while reading number $i: " . $fh->error() . " ($!)";
+        }
+        if ($line !~ /(\d+)/  ||  $1 != $i*2) {
+            die "Wrong response, exptected " . ($i*2) . ", got $line";
+        }
     }
 };
-if ($@) {
-    print STDERR "$@\n";
-    print "not ok 4\n";
-} else {
-    print "ok 4\n";
-}
-printf("%s 5\n", $fh->close() ? "ok" : "not ok");
+is($@, '', "No error sending/recieving numbers 0..19");
+ok($fh->close(), "Disconnect from port $port succeeds");
 
 END {
-    if ($handle) { $handle->Terminate() }
-    if (-f "ndtest.prt") { unlink "ndtest.prt" }
-    exit 0;
+    $handle->Terminate  if ($handle);
+    unlink "ndtest.prt" if (-f "ndtest.prt"); 
 }
