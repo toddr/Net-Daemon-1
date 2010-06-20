@@ -1,59 +1,88 @@
-# -*- perl -*-
-#
+BEGIN {
+    require 5.004;
+    use strict;
+    use warnings;
+    
+    use Test::More;
+    
+    use IO::Socket ();
+    use Config ();
+    use Net::Daemon::Test ();
+    use Fcntl ();
+    use Config ();
 
-require 5.004;
-use strict;
-use IO::Socket ();
-use Config ();
-use Net::Daemon::Test ();
-use Fcntl ();
-use Config ();
 
+    unlink glob('forkm.*.pid');
+    $| = 1;
+    
+    
+    my $fork_ok;
+    eval {
+        my $pid = fork();
+        if (defined($pid)) {
+            if (!$pid) { exit 0; } # Child
+        }
+        $fork_ok = 1;
+    };
 
-my $debug = 0;
-my $dh;
-if ($debug) {
-    $dh = Symbol::gensym();
-    open($dh, ">", "forkm.log") or die "Failed to open forkm.log: $!";
-}
-
-sub log($) {
-    my $msg = shift;
-    print $dh "$$: $msg\n" if $dh;
-}
-
-&log("Start");
-my $ok;
-eval {
-  if ($^O ne "MSWin32") {
-    my $pid = fork();
-    if (defined($pid)) {
-      if (!$pid) { exit 0; } # Child
+    if(!$fork_ok) {
+        plan skip_all => "Forking doesn't work on this system?";
+        exit;
     }
-    wait;
-    $ok = 1;
-  }
-};
-if (!$ok) {
-  &log("!ok");
-  print "1..0\n";
-  exit;
+    
+    plan tests => 30;
 }
 
 
-$| = 1;
-$^W = 1;
+
+my ($handle, $port) = Net::Daemon::Test->Child(undef, $^X, '-Iblib/lib', '-Iblib/arch', 't/server', '--mode=fork', 'logfile=stderr', 'debug');
 
 
-my($handle, $port);
-if (@ARGV) {
-    $port = shift @ARGV;
-} else {
-    ($handle, $port) = Net::Daemon::Test->Child
-	(10, $^X, '-Iblib/lib', '-Iblib/arch', 't/server',
-	 '--mode=fork', 'logfile=stderr', 'debug');
+my %childs;
+
+# Spawn 10 childs, each of them running a series of tests
+for my $fork_number (1..10) {
+    my $pid = fork();
+    defined $pid or die("Couldn't fork process");
+    if ($pid) {
+        # This is the parent
+        $childs{$fork_number} = $pid;
+        pass("Created process $fork_number to connect back to my server. pid=$pid");
+    } else {
+        # This is the child
+        undef $handle;
+        %childs = ();
+
+        my $result = run_child_tests($fork_number);
+
+        open(my $fh, ">", "forkm.$$.pid") or die;
+        print $fh $result;
+        close $fh;
+        exit 0;
+    }
 }
 
+$SIG{ALRM} = sub { die "the 10 forks did not finish after 120 seconds!" };
+alarm(120);
+
+for my $child_fork (1..10) {
+    diag("Waiting for fork $child_fork ($childs{$child_fork}) to finish");
+    waitpid($childs{$child_fork}, 0); # Bloocking wait. die with alarm if we don't parse them all in 120 seconds
+    pass("fork $child_fork ($childs{$child_fork}) finished");
+    
+    my $child_pid_file = "forkm.$childs{$child_fork}.pid";
+    open(my $fh, "<", $child_pid_file);
+    local $/ = '';
+    my $result = <$fh>;
+    close $fh;
+    unlink $child_pid_file;
+    
+    is($result, 'ok', "Child test $child_fork ($childs{$child_fork}) succeeded");
+    
+}
+
+diag("exit");
+exit;
 
 sub IsNum {
     my $str = shift;
@@ -62,138 +91,52 @@ sub IsNum {
 
 
 sub ReadWrite {
-    my $fh = shift; my $i = shift; my $j = shift;
-    &log("ReadWrite: -> fh=$fh, i=$i, j=$j");
-    if (!$fh->print("$j\n")  ||  !$fh->flush()) {
-	die "Child $i: Error while writing $j: " . $fh->error() . " ($!)";
+    my $fh = shift; my $fork_number = shift; my $readwrite_counter = shift;
+    if (!$fh->print("$readwrite_counter\n")  ||  !$fh->flush()) {
+        die "Child $fork_number: Error while writing $readwrite_counter: " . $fh->error() . " ($!)";
     }
     my $line = $fh->getline();
-    &log("ReadWrite: line=$line");
-    die "Child $i: Error while reading: " . $fh->error() . " ($!)"
-	unless defined($line);
+    die "Child $fork_number: Error while reading: " . $fh->error() . " ($!)"
+        unless defined($line);
+    
     my $num;
-    die "Child $i: Cannot parse result: $line"
-	unless defined($num = IsNum($line));
-    die "Child $i: Expected " . ($j*2) . ", got $num"
-	unless $j*2 == $num;
-    &log("ReadWrite: <-");
+    die "Child $fork_number: Cannot parse result: $line"
+        unless defined($num = IsNum($line));
+        
+    die "Child $fork_number: Expected " . ($readwrite_counter*2) . ", got $num"
+        unless $readwrite_counter*2 == $num;
 }
 
 
-sub MyChild {
-    my $i = shift;
-
-    &log("MyChild: -> $i");
+sub run_child_tests {
+    my $fork_number = shift;
 
     eval {
-	my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
-				       'PeerPort' => $port);
-	if (!$fh) {
-	    &log("MyChild: Cannot connect: $!");
-	    die "Cannot connect: $!";
-	}
-	for (my $j = 0;  $j < 1000;  $j++) {
-	    ReadWrite($fh, $i, $j);
-	}
+        my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
+                       'PeerPort' => $port);
+        if (!$fh) {
+            die "Process $$ cannot connect: $!";
+        }
+        for my $readwrite_counter (1..10000) {
+            ReadWrite($fh, $fork_number, $readwrite_counter);
+        }
     };
     if ($@) {
-	print STDERR "Client: Error $@\n";
-	&log("MyChild: Client: Error $@");
-	return 0;
+        diag("Client: Error $@");
+        return "Client: Error $@";
     }
-    &log("MyChild: <-");
-    return 1;
+    return "ok";
 }
 
-
-sub ShowResults {
-    &log("ShowResults: ->");
-    my @results;
-    for (my $i = 1;  $i <= 10;  $i++) {
-	$results[$i-1] = "not ok $i\n";
-    }
-    if (open(LOG, "<log")) {
-	while (defined(my $line = <LOG>)) {
-	    if ($line =~ /(\d+)/) {
-		$results[$1-1] = $line;
-	    }
-	}
-    }
-    for (my $i = 1;  $i <= 10;  $i++) {
-	print $results[$i-1];
-    }
-    &log("ShowResults: <-");
-    exit 0;
-}
-
-my %childs;
-sub CatchChild {
-    &log("CatchChild: ->");
-    for(;;) {
-	my $pid = wait;
-	if ($pid > 0) {
-	    &log("CatchChild: $pid");
-	    if (exists $childs{$pid}) {
-		delete $childs{$pid};
-                if (keys(%childs) == 0) {
-                    # We ae done when the last of our ten childs are gone.
-                    ShowResults();
-                    last;
-		}
-	    }
-	}
-    }
-    $SIG{'CHLD'} = \&CatchChild;
-    &log("CatchChild: <-");
-}
-$SIG{'CHLD'} = \&CatchChild;
-
-# Spawn 10 childs, each of them running a series of test
-unlink "log";
-&log("Spawning childs");
-for (my $i = 0;  $i < 10;  $i++) {
-    if (defined(my $pid = fork())) {
-	if ($pid) {
-	    # This is the parent
-	    $childs{$pid} = $i;
-	} else {
-	    &log("Child starting");
-	    # This is the child
-	    undef $handle;
-	    %childs = ();
-	    my $result = MyChild($i);
-	    my $fh = Symbol::gensym();
-	    if (!open($fh, ">>log")  ||  !flock($fh, 2)  ||
-		!seek($fh, 0, 2)  ||
-		!(print $fh (($result ? "ok " : "not ok "), ($i+1), "\n"))  ||
-		!close($fh)) {
-		print STDERR "Error while writing log file: $!\n";
-		exit 1;
-	    }
-	    exit 0;
-	}
-    } else {
-	print STDERR "Failed to create new child: $!\n";
-	exit 1;
-    }
-}
-
-my $secs = 120;
-while ($secs > 0) {
-    $secs -= sleep $secs;
-}
-
-END {
-    &log("END: -> handle=" . (defined($handle) ? $handle : "undef"));
+END { # Cleanup server on exit.
     if ($handle) {
-	$handle->Terminate();
-	undef $handle;
+       $handle->Terminate();
+       undef $handle;
     }
     while (my($var, $val) = each %childs) {
-	kill 'TERM', $var;
+       kill 'TERM', $var;
     }
     %childs = ();
     unlink "ndtest.prt";
-    &log("END: <-");
     exit 0;
 }
