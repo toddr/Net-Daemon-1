@@ -1,6 +1,4 @@
-# -*- perl -*-
-#
-#   $Id: Test.pm,v 1.2 1999/08/12 14:28:57 joe Exp $
+############################################################################
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -59,17 +57,17 @@ Net::Daemon::Test - support functions for testing Net::Daemon servers
     @MyDaemon::ISA = qw(Net::Daemon::Test);
 
     sub Run {
-	# Overwrite this and other methods, as you like.
+    # Overwrite this and other methods, as you like.
     }
 
     my $self = Net::Daemon->new(\%attr, \@options);
     eval { $self->Bind() };
     if ($@) {
-	die "Server cannot bind: $!";
+    die "Server cannot bind: $!";
     }
     eval { $self->Run() };
     if ($@) {
-	die "Unexpected server termination: $@";
+    die "Unexpected server termination: $@";
     }
 
 
@@ -82,11 +80,11 @@ Net::Daemon::Test - support functions for testing Net::Daemon servers
 
     my($handle, $port) = eval {
         Net::Daemon::Test->Child(5, # Number of subtests
-				 'servertask', '--timeout', '20')
+                 'servertask', '--timeout', '20')
     };
     if ($@) {
-	print "not ok 1 $@\n";
-	exit 0;
+    print "not ok 1 $@\n";
+    exit 0;
     }
     print "ok 1\n";
 
@@ -137,11 +135,11 @@ sub Options ($) {
     my $self = shift;
     my $options = $self->SUPER::Options();
     $options->{'timeout'} = {
-	'template' => 'timeout=i',
-	'description' => '--timeout <secs>        '
-	    . "The server will die if the test takes longer\n"
-	    . '                        than this number of seconds.'
-	};
+    'template' => 'timeout=i',
+    'description' => '--timeout <secs>        '
+        . "The server will die if the test takes longer\n"
+        . '                        than this number of seconds.'
+    };
     $options;
 }
 
@@ -171,40 +169,40 @@ sub Bind ($) {
         }
     } else {
         my @socket_args =
-	    ( 'LocalAddr' => $self->{'localaddr'},
-	      'LocalPort' => $self->{'localport'},
-	      'Proto' => $self->{'proto'} || 'tcp',
-	      'Listen' => $self->{'listen'} || 10,
-	      'Reuse' => 1
-	    );
+        ( 'LocalAddr' => $self->{'localaddr'},
+          'LocalPort' => $self->{'localport'},
+          'Proto' => $self->{'proto'} || 'tcp',
+          'Listen' => $self->{'listen'} || 10,
+          'Reuse' => 1
+        );
         $socket = eval { IO::Socket::INET->new(@socket_args) };
         if ($socket) {
-	    $port = $socket->sockport();
+        $port = $socket->sockport();
         } else {
             $port = 30049;
             while (!$socket  &&  $port++ < 30060) {
-	        $socket = eval { IO::Socket::INET->new(@socket_args,
-	       			                       'LocalPort' => $port) };
+            $socket = eval { IO::Socket::INET->new(@socket_args,
+                                              'LocalPort' => $port) };
             }
         }
     }
     if (!$socket) {
-	die "Cannot create socket: " . ($@ || $!);
+    die "Cannot create socket: " . ($@ || $!);
     }
 
     # Create the "ndtest.prt" file so that the child knows to what
     # port it may connect.
     my $fh = Symbol::gensym();
     if (!open($fh, ">ndtest.prt")  ||
-	!(print $fh $port)  ||
-	!close($fh)) {
-	die "Error while creating 'ndtest.prt': $!";
+    !(print $fh $port)  ||
+    !close($fh)) {
+    die "Error while creating 'ndtest.prt': $!";
     }
     $self->Debug("Created ndtest.prt with port $port\n");
     $self->{'socket'} = $socket;
 
     if (my $timeout = $self->{'timeout'}) {
-	eval { alarm $timeout };
+    eval { alarm $timeout };
     }
 
     $self->SUPER::Bind();
@@ -252,69 +250,69 @@ sub Child ($$@) {
     unlink 'ndtest.prt';
 
     if ($args =~ /\-\-mode=(?:ithread|thread|single)/  &&  $^O =~ /mswin32/i) {
-	require Win32;
-	require Win32::Process;
-	my $proc = $_[0];
+    require Win32;
+    require Win32::Process;
+    my $proc = $_[0];
 
-	# Win32::Process seems to require an absolute path; this includes
-	# a program extension like ".exe"
-	my $path;
-	my @pdirs;
+    # Win32::Process seems to require an absolute path; this includes
+    # a program extension like ".exe"
+    my $path;
+    my @pdirs;
 
-	File::Basename::fileparse_set_fstype("MSWin32");
-	if (File::Basename::basename($proc) !~ /\./) {
-	    $proc .= ".exe";
-	}
-	if ($proc !~ /^\w\:\\/  &&  $proc !~ /^\\/) {
-	    # Doesn't look like an absolute path
-	    foreach my $dir (@pdirs = split(/;/, $ENV{'PATH'})) {
-		if (-x "$dir/$proc") {
-		    $path = "$dir/$proc";
-		    last;
-		}
-	    }
-	    if (!$path) {
-		print STDERR ("Cannot find $proc in the following"
-			      , " directories:\n");
-		foreach my $dir (@pdirs) {
-		    print STDERR "    $dir\n";
-		}
-		print STDERR "Terminating.\n";
-		exit 1;
-	    }
-	} else {
-	    $path = $proc;
-	}
-
-	print "Starting process: proc = $path, args = ", join(" ", @_), "\n";
-	if (!&Win32::Process::Create($pid, $path,
- 				     join(" ", @_), 0,
-                                     Win32::Process::DETACHED_PROCESS(),
- 				     ".")) {
- 	    die "Cannot create child process: "
- 		. Win32::FormatMessage(Win32::GetLastError());
- 	}
-	$handle = bless(\$pid, "Net::Daemon::Test::Win32");
+    File::Basename::fileparse_set_fstype("MSWin32");
+    if (File::Basename::basename($proc) !~ /\./) {
+        $proc .= ".exe";
+    }
+    if ($proc !~ /^\w\:\\/  &&  $proc !~ /^\\/) {
+        # Doesn't look like an absolute path
+        foreach my $dir (@pdirs = split(/;/, $ENV{'PATH'})) {
+        if (-x "$dir/$proc") {
+            $path = "$dir/$proc";
+            last;
+        }
+        }
+        if (!$path) {
+        print STDERR ("Cannot find $proc in the following"
+                  , " directories:\n");
+        foreach my $dir (@pdirs) {
+            print STDERR "    $dir\n";
+        }
+        print STDERR "Terminating.\n";
+        exit 1;
+        }
     } else {
-	$pid = eval { fork() };
-	if (defined($pid)) {
-	    # Aaaah, Unix! :-)
-	    if (!$pid) {
-		# This is the child process, spawn the server.
-		exec @_;
-	    }
-	    $handle = bless(\$pid, "Net::Daemon::Test::Fork");
-	} else {
-	    print "1..0\n";
-	    exit 0;
-	}
+        $path = $proc;
+    }
+
+    print "Starting process: proc = $path, args = ", join(" ", @_), "\n";
+    if (!&Win32::Process::Create($pid, $path,
+                      join(" ", @_), 0,
+                                     Win32::Process::DETACHED_PROCESS(),
+                      ".")) {
+         die "Cannot create child process: "
+         . Win32::FormatMessage(Win32::GetLastError());
+     }
+    $handle = bless(\$pid, "Net::Daemon::Test::Win32");
+    } else {
+    $pid = eval { fork() };
+    if (defined($pid)) {
+        # Aaaah, Unix! :-)
+        if (!$pid) {
+        # This is the child process, spawn the server.
+        exec @_;
+        }
+        $handle = bless(\$pid, "Net::Daemon::Test::Fork");
+    } else {
+        print "1..0\n";
+        exit 0;
+    }
     }
 
     print "1..$numTests\n" if defined($numTests);
     for (my $secs = 20;  $secs  &&  ! -s 'ndtest.prt';  $secs -= sleep 1) {
     }
     if (! -s 'ndtest.prt') {
-	die "Server process didn't create a file 'ndtest.prt'.";
+    die "Server process didn't create a file 'ndtest.prt'.";
     }
     # Sleep another second in case the server is still creating the
     # file with the port number ...
@@ -322,8 +320,8 @@ sub Child ($$@) {
     my $fh = Symbol::gensym();
     my $port;
     if (!open($fh, "<ndtest.prt")  ||
-	!defined($port = <$fh>)) {
-	die "Error while reading 'ndtest.prt': $!";
+    !defined($port = <$fh>)) {
+    die "Error while reading 'ndtest.prt': $!";
     }
     ($handle, $port);
 }

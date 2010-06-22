@@ -1,6 +1,4 @@
-# -*- perl -*-
-#
-#   $Id: Log.pm,v 1.3 1999/09/26 14:50:13 joe Exp $
+############################################################################
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -48,17 +46,17 @@ sub OpenLog($) {
     return 1 unless ref($self);
     return $self->{'logfile'} if defined($self->{'logfile'});
     if ($Config::Config{'archname'} =~ /win32/i) {
-	require Win32::EventLog;
-	$self->{'eventLog'} = Win32::EventLog->new(ref($self), '')
-	    or die "Cannot open EventLog:" . &Win32::GetLastError();
-	$self->{'$eventId'} = 0;
+    require Win32::EventLog;
+    $self->{'eventLog'} = Win32::EventLog->new(ref($self), '')
+        or die "Cannot open EventLog:" . &Win32::GetLastError();
+    $self->{'$eventId'} = 0;
     } else {
-	eval { require Sys::Syslog };
-	if ($@) {
-	    die "Cannot open Syslog: $@";
-	}
-	&Sys::Syslog::openlog($self->{'logname'} || ref($self), 'pid',
-			      $self->{'facility'} || 'daemon');
+    eval { require Sys::Syslog };
+    if ($@) {
+        die "Cannot open Syslog: $@";
+    }
+    &Sys::Syslog::openlog($self->{'logname'} || ref($self), 'pid',
+                  $self->{'facility'} || 'daemon');
     }
     $self->{'logfile'} = 0;
 }
@@ -69,52 +67,52 @@ sub Log ($$$;@) {
 
     my $tid = '';
     if (ref($self)  &&  $self->{'mode'}) {
-	if ($self->{'mode'} eq 'ithreads') {
-	    if (my $sthread = threads->self()) {
-		$tid = $sthread->tid() . ", ";
-	    }
-	} elsif ($self->{'mode'} eq 'threads') {
+    if ($self->{'mode'} eq 'ithreads') {
+        if (my $sthread = threads->self()) {
+        $tid = $sthread->tid() . ", ";
+        }
+    } elsif ($self->{'mode'} eq 'threads') {
       if (my $sthread = Thread->self()) {
-	  $tid = $sthread->tid() . ", ";
+      $tid = $sthread->tid() . ", ";
       }
     }
     }
     if ($logfile) {
-	my $logtime = $self->LogTime();
-	if (ref($logfile)) {
-	    $logfile->print(sprintf("$logtime $level, $tid$format\n", @args));
-	} else {
-	    printf STDERR ("$logtime $level, $tid$format\n", @args);
-	}
-    } elsif (my $eventLog = $self->{'eventLog'}) {
-	my($type, $category);
-	if ($level eq 'debug') {
-	    $type = Win32::EventLog::EVENTLOG_INFORMATION_TYPE();
-	    $category = 10;
-	} elsif ($level eq 'notice') {
-	    $type = Win32::EventLog::EVENTLOG_INFORMATION_TYPE();
-	    $category = 20;
-	} else {
-	    $type = Win32::EventLog::EVENTLOG_ERROR_TYPE();
-	    $category = 50;
-	}
-	$eventLog->Report({
-	    'Category' => $category,
-	    'EventType' => $type,
-	    'EventID' => ++$self->{'eventId'},
-	    'Strings' => sprintf($format, @args),
-	    'Data' => $tid
-	    });
+    my $logtime = $self->LogTime();
+    if (ref($logfile)) {
+        $logfile->print(sprintf("$logtime $level, $tid$format\n", @args));
     } else {
-	&Sys::Syslog::syslog($level, "$tid$format", @args);
+        printf STDERR ("$logtime $level, $tid$format\n", @args);
+    }
+    } elsif (my $eventLog = $self->{'eventLog'}) {
+    my($type, $category);
+    if ($level eq 'debug') {
+        $type = Win32::EventLog::EVENTLOG_INFORMATION_TYPE();
+        $category = 10;
+    } elsif ($level eq 'notice') {
+        $type = Win32::EventLog::EVENTLOG_INFORMATION_TYPE();
+        $category = 20;
+    } else {
+        $type = Win32::EventLog::EVENTLOG_ERROR_TYPE();
+        $category = 50;
+    }
+    $eventLog->Report({
+        'Category' => $category,
+        'EventType' => $type,
+        'EventID' => ++$self->{'eventId'},
+        'Strings' => sprintf($format, @args),
+        'Data' => $tid
+        });
+    } else {
+    &Sys::Syslog::syslog($level, "$tid$format", @args);
     }
 }
 
 sub Debug ($$;@) {
     my $self = shift;
     if (!ref($self)  ||  $self->{'debug'}) {
-	my $fmt = shift;
-	$self->Log('debug', $fmt, @_);
+    my $fmt = shift;
+    $self->Log('debug', $fmt, @_);
     }
 }
 
