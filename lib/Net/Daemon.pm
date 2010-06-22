@@ -158,8 +158,8 @@ sub Usage ($) {
     print STDERR "Usage: $0 <options>\n\nPossible options are:\n\n";
     my($key);
     foreach $key (sort (keys %$options)) {
-    my($o) = $options->{$key};
-    print STDERR "  ", $o->{'description'}, "\n" if $o->{'description'};
+        my($o) = $options->{$key};
+        print STDERR "  ", $o->{'description'}, "\n" if $o->{'description'};
     }
     print STDERR "\n", $class->Version(), "\n";
     exit(1);
@@ -186,18 +186,18 @@ sub Usage ($) {
 sub ReadConfigFile {
     my($self, $file, $options, $args) = @_;
     if (! -f $file) {
-    $self->Fatal("No such config file: $file");
+        $self->Fatal("No such config file: $file");
     }
     my $copts = do $file;
     if ($@) {
-    $self->Fatal("Error while processing config file $file: $@");
+        $self->Fatal("Error while processing config file $file: $@");
     }
     if (!$copts || ref($copts) ne 'HASH') {
-    $self->Fatal("Config file $file did not return a hash ref.");
+        $self->Fatal("Config file $file did not return a hash ref.");
     }
     # Override current configuration with config file options.
     while (my($var, $val) = each %$copts) {
-    $self->{$var} = $val;
+        $self->{$var} = $val;
     }
 }
 
@@ -224,71 +224,74 @@ sub new ($$;$) {
     my $options = ($self->{'options'} ||= {});
     $self->{'args'} ||= [];
     if ($args) {
-    my @optList = map { $_->{'template'} } values(%{$class->Options()});
+        my @optList = map { $_->{'template'} } values(%{$class->Options()});
 
-    local @ARGV = @$args;
-    if (!Getopt::Long::GetOptions($options, @optList)) {
-        $self->Usage();
-    }
-    @{$self->{'args'}} = @ARGV;
+        local @ARGV = @$args;
+        if (!Getopt::Long::GetOptions($options, @optList)) {
+            $self->Usage();
+        }
+        @{$self->{'args'}} = @ARGV;
 
-    if ($options->{'help'}) {
-        $self->Usage();
-    }
-    if ($options->{'version'}) {
-        print STDERR $self->Version(), "\n";
-        exit 1;
-    }
+        if ($options->{'help'}) {
+            $self->Usage();
+        }
+        if ($options->{'version'}) {
+            print STDERR $self->Version(), "\n";
+            exit 1;
+        }
     }
 
     my $file = $options->{'configfile'}  ||  $self->{'configfile'};
     if ($file) {
-    $self->ReadConfigFile($file, $options, $args);
+        $self->ReadConfigFile($file, $options, $args);
     }
+    
     while (my($var, $val) = each %$options) {
-    $self->{$var} = $val;
+        $self->{$var} = $val;
     }
 
     if ($self->{'childs'}) {
-    $self->{'mode'} = 'single';
+        $self->{'mode'} = 'single';
     } elsif (!defined($self->{'mode'})) {
-    if (eval { require thread }) {
-        $self->{'mode'} = 'ithreads';
-    } elsif (eval { require Thread }) {
-        $self->{'mode'} = 'threads';
-    } else {
-        my $fork = 0;
-        if ($^O ne "MSWin32") {
-        my $pid = eval { fork() };
-        if (defined($pid)) {
-            if (!$pid) { exit; } # Child
-            $fork = 1;
-            wait;
+        if (eval { require thread }) {
+            $self->{'mode'} = 'ithreads';
+        } elsif (eval { require Thread }) {
+            $self->{'mode'} = 'threads';
+        } else {
+            my $fork = 0;
+            if ($^O ne "MSWin32") {
+                my $pid = eval { fork() };
+                if (defined($pid)) {
+                    if (!$pid) { exit; } # Child
+                    $fork = 1;
+                    wait;
+                }
+            }
+            
+            if ($fork) {
+                $self->{'mode'} = 'fork';
+            } else {
+                $self->{'mode'} = 'single';
             }
         }
-        if ($fork) {
-        $self->{'mode'} = 'fork';
-        } else {
-        $self->{'mode'} = 'single';
-        }
-    }
     }
 
     if ($self->{'mode'} eq 'ithreads') {
-    require threads;
+        require threads;
     } elsif ($self->{'mode'} eq 'threads') {
-    require Thread;
+        require Thread;
     } elsif ($self->{'mode'} eq 'fork') {
-    # Initialize forking mode ...
+        # Initialize forking mode ...
     } elsif ($self->{'mode'} eq 'single') {
-    # Initialize single mode ...
+        # Initialize single mode ...
     } else {
-    $self->Fatal("Unknown operation mode: $self->{'mode'}");
+        $self->Fatal("Unknown operation mode: $self->{'mode'}");
     }
+    
     $self->{'catchint'} = 1 unless exists($self->{'catchint'});
     $self->Debug("Server starting in operation mode $self->{'mode'}");
     if ($self->{'childs'}) {
-    $self->Debug("Preforking $self->{'childs'} child processes ...");
+        $self->Debug("Preforking $self->{'childs'} child processes ...");
     }
 
     $self;
@@ -321,63 +324,61 @@ sub Accept ($) {
     my $self = shift;
     my $socket = $self->{'socket'};
     my $clients = $self->{'clients'};
-    my $from = $self->{'proto'} eq 'unix' ?
-    "Unix socket" : sprintf("%s, port %s",
-                $socket->peerhost(), $socket->peerport());
+    my $from = $self->{'proto'} eq 'unix'
+                ? "Unix socket" : sprintf("%s, port %s", $socket->peerhost(), $socket->peerport());
 
     # Host based authorization
     if ($self->{'clients'}) {
-    my ($name, $aliases, $addrtype, $length, @addrs);
-    if ($self->{'proto'} eq 'unix') {
-        ($name, $aliases, $addrtype, $length, @addrs) =
-        ('localhost', '', Socket::AF_INET(),
-         length(Socket::IN_ADDR_ANY()),
-            Socket::inet_aton('127.0.0.1'));
-    } else {
-        ($name, $aliases, $addrtype, $length, @addrs) =
-        gethostbyaddr($socket->peeraddr(), Socket::AF_INET());
-    }
-    my @patterns = @addrs ?
-        map { Socket::inet_ntoa($_) } @addrs  :
-        $socket->peerhost();
-    push(@patterns, $name)            if ($name);
-    push(@patterns, split(/ /, $aliases))    if $aliases;
-
-    my $found;
-    OUTER: foreach my $client (@$clients) {
-        if (!$client->{'mask'}) {
-        $found = $client;
-        last;
+        my ($name, $aliases, $addrtype, $length, @addrs);
+        if ($self->{'proto'} eq 'unix') {
+            ($name, $aliases, $addrtype, $length, @addrs) = ('localhost', '', Socket::AF_INET(),
+                                                             length(Socket::IN_ADDR_ANY()),
+                                                             Socket::inet_aton('127.0.0.1'));
+        } else {
+            ($name, $aliases, $addrtype, $length, @addrs) = gethostbyaddr($socket->peeraddr(), Socket::AF_INET());
         }
-        my $masks = ref($client->{'mask'}) ?
-        $client->{'mask'} : [ $client->{'mask'} ];
+        
+        my @patterns = @addrs ?
+        map { Socket::inet_ntoa($_) } @addrs : $socket->peerhost();
+        push(@patterns, $name) if ($name);
+        push(@patterns, split(/ /, $aliases)) if $aliases;
 
-        #
-        # Regular expressions aren't thread safe, as of
-        # 5.00502 :-(
-        #
-        my $lock;
-        $lock = lock($Net::Daemon::RegExpLock)
-        if ($self->{'mode'} eq 'threads');
-        foreach my $mask (@$masks) {
-        foreach my $alias (@patterns) {
-            if ($alias =~ /$mask/) {
-            $found = $client;
-            last OUTER;
+        my $found;
+        OUTER: foreach my $client (@$clients) {
+            if (!$client->{'mask'}) {
+                $found = $client;
+                last;
+            }
+        
+            my $masks = ref($client->{'mask'}) ?
+            $client->{'mask'} : [ $client->{'mask'} ];
+
+            #
+            # Regular expressions aren't thread safe, as of
+            # 5.00502 :-(
+            #
+            
+            my $lock;
+            $lock = lock($Net::Daemon::RegExpLock) if ($self->{'mode'} eq 'threads');
+            foreach my $mask (@$masks) {
+                foreach my $alias (@patterns) {
+                    if ($alias =~ /$mask/) {
+                        $found = $client;
+                        last OUTER;
+                    }
+                }
             }
         }
-        }
-    }
 
-    if (!$found  ||  !$found->{'accept'}) {
-        $self->Error("Access not permitted from $from");
-        return 0;
-    }
-    $self->{'client'} = $found;
+        if (!$found  ||  !$found->{'accept'}) {
+            $self->Error("Access not permitted from $from");
+            return 0;
+        }
+        $self->{'client'} = $found;
     }
 
     $self->Debug("Accepting client from $from");
-    1;
+    return 1;
 }
 
 
@@ -393,8 +394,7 @@ sub Accept ($) {
 #
 ############################################################################
 
-sub Run ($) {
-}
+sub Run { }
 
 
 ############################################################################
@@ -456,29 +456,29 @@ sub Loop {
 sub ChildFunc {
     my($self, $method, @args) = @_;
     if ($self->{'mode'} eq 'single') {
-    $self->$method(@args);
+        $self->$method(@args);
     } elsif ($self->{'mode'} eq 'threads') {
-    my $startfunc = sub {
-        my $self = shift;
-        my $method = shift;
-        $self->$method(@_)
-    };
-    Thread->new($startfunc, $self, $method, @args)
-        or die "Failed to create a new thread: $!";
+        my $startfunc = sub {
+            my $self = shift;
+            my $method = shift;
+            $self->$method(@_)
+        };
+        Thread->new($startfunc, $self, $method, @args)
+            or die "Failed to create a new thread: $!";
     } elsif ($self->{'mode'} eq 'ithreads') {
-    my $startfunc = sub {
-        my $self = shift;
-        my $method = shift;
-        $self->$method(@_)
-    };
-    threads->new($startfunc, $self, $method, @args)
-        or die "Failed to create a new thread: $!";
+        my $startfunc = sub {
+            my $self = shift;
+            my $method = shift;
+            $self->$method(@_)
+        };
+        threads->new($startfunc, $self, $method, @args)
+            or die "Failed to create a new thread: $!";
     } else {
-    my $pid = fork();
-    die "Cannot fork: $!" unless defined $pid;
-    return if $pid;        # Parent
-    $self->$method(@args); # Child
-    exit(0);
+        my $pid = fork();
+        die "Cannot fork: $!" unless defined $pid;
+        return if $pid;        # Parent
+        $self->$method(@args); # Child
+        exit(0);
     }
 }
 
@@ -501,12 +501,12 @@ sub HandleChild {
     my $self = shift;
     $self->Debug("New child starting ($self).");
     eval {
-    if (!$self->Accept()) {
-        $self->Error('Refusing client');
-    } else {
-        $self->Debug('Accepting client');
-        $self->Run();
-    }
+        if (!$self->Accept()) {
+            $self->Error('Refusing client');
+        } else {
+            $self->Debug('Accepting client');
+            $self->Run();
+        }
     };
     $self->Error("Child died: $@") if $@;
     $self->Debug("Child terminating.");
@@ -528,171 +528,169 @@ sub Bind ($) {
     $SIG{'CHLD'} = $reaper if $reaper;
 
     if (!$self->{'socket'}) {
-    $self->{'proto'} ||= ($self->{'localpath'}) ? 'unix' : 'tcp';
+        $self->{'proto'} ||= ($self->{'localpath'}) ? 'unix' : 'tcp';
 
-    if ($self->{'proto'} eq 'unix') {
-        my $path = $self->{'localpath'}
-        or $self->Fatal('Missing option: localpath');
-        unlink $path;
-        $self->Fatal("Can't remove stale Unix socket ($path): $!")
-        if -e $path;
-        my $old_umask = umask 0;
-        $self->{'socket'} =
-        IO::Socket::UNIX->new('Local' => $path,
-                      'Listen' => $self->{'listen'} || 10)
-              or $self->Fatal("Cannot create Unix socket $path: $!");
-        umask $old_umask;
-    } else {
-        $self->{'socket'} = IO::Socket::INET->new
-        ( 'LocalAddr' => $self->{'localaddr'},
-          'LocalPort' => $self->{'localport'},
-          'Proto'     => $self->{'proto'} || 'tcp',
-          'Listen'    => $self->{'listen'} || 10,
-          'Reuse'     => 1)
-            or $self->Fatal("Cannot create socket: $!");
-    }
+        if ($self->{'proto'} eq 'unix') {
+            my $path = $self->{'localpath'} 
+                or $self->Fatal('Missing option: localpath');
+            unlink $path;
+            
+            $self->Fatal("Can't remove stale Unix socket ($path): $!") if -e $path;
+    
+            my $old_umask = umask 0;
+            $self->{'socket'} = IO::Socket::UNIX->new('Local' => $path, 'Listen' => $self->{'listen'} || 10)
+                  or $self->Fatal("Cannot create Unix socket $path: $!");
+            umask $old_umask;
+        } else {
+            $self->{'socket'} = IO::Socket::INET->new
+                ( 'LocalAddr' => $self->{'localaddr'},
+                  'LocalPort' => $self->{'localport'},
+                  'Proto'     => $self->{'proto'} || 'tcp',
+                  'Listen'    => $self->{'listen'} || 10,
+                  'Reuse'     => 1)
+                or $self->Fatal("Cannot create socket: $!");
+        }
     }
     $self->Log('notice', "Server starting");
 
     if ((my $pidfile = ($self->{'pidfile'} || '')) ne 'none') {
-    $self->Debug("Writing PID to $pidfile");
-    my $fh = Symbol::gensym();
-    $self->Fatal("Cannot write to $pidfile: $!")
-        unless (open (OUT, ">$pidfile")
-            and (print OUT "$$\n")
-            and close(OUT));
+        $self->Debug("Writing PID to $pidfile");
+        my $fh = Symbol::gensym();
+        $self->Fatal("Cannot write to $pidfile: $!")
+            unless (open (OUT, ">$pidfile") and (print OUT "$$\n") and close(OUT));
     }
 
     if (my $dir = $self->{'chroot'}) {
-    $self->Debug("Changing root directory to $dir");
-    if (!chroot($dir)) {
-        $self->Fatal("Cannot change root directory to $dir: $!");
+        $self->Debug("Changing root directory to $dir");
+        if (!chroot($dir)) {
+            $self->Fatal("Cannot change root directory to $dir: $!");
+        }
     }
-    }
+    
     if (my $group = $self->{'group'}) {
-    $self->Debug("Changing GID to $group");
-    my $gid;
-    if ($group !~ /^\d+$/) {
-        if (defined(my $gid = getgrnam($group))) {
-        $group = $gid;
-        } else {
-        $self->Fatal("Cannot determine gid of $group: $!");
+        $self->Debug("Changing GID to $group");
+        my $gid;
+        if ($group !~ /^\d+$/) {
+            if (defined(my $gid = getgrnam($group))) {
+                $group = $gid;
+            } else {
+                $self->Fatal("Cannot determine gid of $group: $!");
+            }
         }
+        $( = ($) = $group);
     }
-    $( = ($) = $group);
-    }
+    
     if (my $user = $self->{'user'}) {
-    $self->Debug("Changing UID to $user");
-    my $uid;
-    if ($user !~ /^\d+$/) {
-        if (defined(my $uid = getpwnam($user))) {
-        $user = $uid;
-        } else {
-        $self->Fatal("Cannot determine uid of $user: $!");
+        $self->Debug("Changing UID to $user");
+        my $uid;
+        if ($user !~ /^\d+$/) {
+            if (defined(my $uid = getpwnam($user))) {
+                $user = $uid;
+            } else {
+            $self->Fatal("Cannot determine uid of $user: $!");
+            }
         }
-    }
-    $< = ($> = $user);
+        $< = ($> = $user);
     }
 
     if ($self->{'childs'}) {
-      my $pid;
+        my $pid;
 
-      my $childpids = $self->{'childpids'} = {};
-      for (my $n = 0; $n < $self->{'childs'}; $n++) {
-    $pid = fork();
-    die "Cannot fork: $!" unless defined $pid;
-    if (!$pid) { #Child
-      $self->{'mode'} = 'single';
-      last;
-    }
-    # Parent
-    $childpids->{$pid} = 1;
-      }
-      if ($pid) {
-    # Parent waits for childs in a loop, then exits ...
-    # We could also terminate the parent process, but
-    # if the parent is still running we can kill the
-    # whole group by killing the childs.
-    my $childpid;
-    $exit = 0;
-    $SIG{'TERM'} = sub { die };
-    $SIG{'INT'}  = sub { die };
-    eval {
-      do {
-        $childpid = wait;
-        delete $childpids->{$childpid};
-        $self->Debug("Child $childpid has exited");
-      } until ($childpid <= 0 || $exit || keys(%$childpids) == 0);
-    };
-    my @pids = keys %{$self -> {'childpids'}};
-    if (@pids) {
-      $self->Debug("kill TERM childs: " . join(",", @pids));
-      kill 'TERM', @pids if @pids ; # send a TERM to all childs
-    }
-    exit (0);
-      }
+        my $childpids = $self->{'childpids'} = {};
+        for (my $n = 0; $n < $self->{'childs'}; $n++) {
+            $pid = fork();
+            die "Cannot fork: $!" unless defined $pid;
+            if (!$pid) { #Child
+                $self->{'mode'} = 'single';
+                last;
+            }
+
+            # Parent
+            $childpids->{$pid} = 1;
+        }
+      
+        if ($pid) {
+            # Parent waits for childs in a loop, then exits ...
+            # We could also terminate the parent process, but
+            # if the parent is still running we can kill the
+            # whole group by killing the childs.
+            my $childpid;
+            $exit = 0;
+            $SIG{'TERM'} = sub { die };
+            $SIG{'INT'}  = sub { die };
+            eval {
+                do {
+                    $childpid = wait;
+                    delete $childpids->{$childpid};
+                    $self->Debug("Child $childpid has exited");
+                } until ($childpid <= 0 || $exit || keys(%$childpids) == 0);
+            };
+            
+            my @pids = keys %{$self -> {'childpids'}};
+            if (@pids) {
+                $self->Debug("kill TERM childs: " . join(",", @pids));
+                kill 'TERM', @pids if @pids ; # send a TERM to all childs
+            }
+            exit (0);
+        }
     }
 
-    my $time = $self->{'loop-timeout'} ?
-    (time() + $self->{'loop-timeout'}) : 0;
+    my $time = $self->{'loop-timeout'} ? (time() + $self->{'loop-timeout'}) : 0;
 
     my $client;
     while (!$self->Done()) {
-    undef $child_pid;
-    my $rin = '';
-    vec($rin,$self->{'socket'}->fileno(),1) = 1;
-    my($rout, $t);
-    if ($time) {
-        my $tm = time();
-        $t = $time - $tm;
-        $t = 0 if $t < 0;
-        $self->Debug("Loop time: time=$time now=$tm, t=$t");
-    }
-    my($nfound) = select($rout=$rin, undef, undef, $t);
-    if ($nfound < 0) {
-        if (!$child_pid  and
-        ($! != POSIX::EINTR() or !$self->{'catchint'})) {
-        $self->Fatal("%s server failed to select(): %s",
-                 ref($self), $self->{'socket'}->error() || $!);
+        undef $child_pid;
+        my $rin = '';
+        vec($rin,$self->{'socket'}->fileno(),1) = 1;
+        my($rout, $t);
+        if ($time) {
+            my $tm = time();
+            $t = $time - $tm;
+            $t = 0 if $t < 0;
+            $self->Debug("Loop time: time=$time now=$tm, t=$t");
         }
-    } elsif ($nfound) {
-        my $client = $self->{'socket'}->accept();
-        if (!$client) {
-        if (!$child_pid  and
-            ($! != POSIX::EINTR() or !$self->{'catchint'})) {
-            $self->Error("%s server failed to accept: %s",
-                 ref($self), $self->{'socket'}->error() || $!);
+    
+        my($nfound) = select($rout=$rin, undef, undef, $t);
+        if ($nfound < 0) {
+            if (!$child_pid  and ($! != POSIX::EINTR() or !$self->{'catchint'})) {
+                $self->Fatal("%s server failed to select(): %s", ref($self), $self->{'socket'}->error() || $!);
+            }
+        } elsif ($nfound) {
+            my $client = $self->{'socket'}->accept();
+            if (!$client) {
+                if (!$child_pid  and ($! != POSIX::EINTR() or !$self->{'catchint'})) {
+                    $self->Error("%s server failed to accept: %s",
+                    ref($self), $self->{'socket'}->error() || $!);
+                }
+            } else {
+                if ($self->{'debug'}) {
+                    my $from = $self->{'proto'} eq 'unix' ? 'Unix socket' :
+                        # SE 19990917: display client data!!
+                        sprintf('%s, port %s', $client->peerhost(), $client->peerport());
+                    $self->Debug("Connection from $from");
+                }
+                
+                my $sth = $self->Clone($client);
+                $self->Debug("Child clone: $sth\n");
+                $sth->ChildFunc('HandleChild') if $sth;
+                if ($self->{'mode'} eq 'fork') {
+                    close($client);
+                }
+            }
         }
-        } else {
-        if ($self->{'debug'}) {
-            my $from = $self->{'proto'} eq 'unix' ?
-            'Unix socket' :
-            sprintf('%s, port %s',
-                # SE 19990917: display client data!!
-                $client->peerhost(),
-                $client->peerport());
-            $self->Debug("Connection from $from");
+    
+        if ($time) {
+            my $t = time();
+            if ($t >= $time) {
+                $time = $t;
+                if ($self->{'loop-child'}) {
+                    $self->ChildFunc('Loop');
+                } else {
+                    $self->Loop();
+                }
+                $time += $self->{'loop-timeout'};
+            }
         }
-        my $sth = $self->Clone($client);
-        $self->Debug("Child clone: $sth\n");
-        $sth->ChildFunc('HandleChild') if $sth;
-        if ($self->{'mode'} eq 'fork') {
-            close($client);
-        }
-        }
-    }
-    if ($time) {
-        my $t = time();
-        if ($t >= $time) {
-        $time = $t;
-        if ($self->{'loop-child'}) {
-            $self->ChildFunc('Loop');
-        } else {
-            $self->Loop();
-        }
-        $time += $self->{'loop-timeout'};
-        }
-    }
     }
     $self->Log('notice', "%s server terminating", ref($self));
 }
