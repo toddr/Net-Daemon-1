@@ -15,7 +15,7 @@ BEGIN {
     plan tests => 65
 }
 
-my($handle, $port) = Net::Daemon::Test->Child(undef, $^X, 't/server', '--timeout', 20, '--mode=ithreads');
+my($test_server, $port) = Net::Daemon::Test->Child(undef, $^X, 't/server', '--timeout', 20, '--mode=ithreads');
 
 
 diag("Making first connection to port $port...");
@@ -42,12 +42,12 @@ ok($fh->close(), 'Close $fh');
 
 # Shut down the server;
 diag("Terminating test server");
-$handle->Terminate();
-undef $handle;
+$test_server->Terminate();
+undef $test_server;
 
 exit;
 
 END {
-    if ($handle) { diag("Terminating test server"); $handle->Terminate() }
+    if ($test_server) { diag("Terminating test server"); $test_server->Terminate() }
     if (-f "ndtest.prt") { unlink "ndtest.prt" }
 }
