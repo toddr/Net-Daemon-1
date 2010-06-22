@@ -1,8 +1,3 @@
-# -*- perl -*-
-#
-#   $Id: loop-child.t,v 1.1 1999/08/12 14:28:59 joe Exp $
-#
-
 require 5.004;
 use strict;
 use warnings;
