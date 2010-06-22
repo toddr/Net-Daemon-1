@@ -1,54 +1,53 @@
-require 5.004;
-use strict;
+BEGIN {
+    require 5.004;
+    use strict;
+    use warnings;
 
-use IO::Socket ();
-use Config ();
-use Net::Daemon::Test ();
+    use IO::Socket ();
+    use Config ();
+    use Net::Daemon::Test ();
+    use Test::More;
 
-my $numTests = 5;
-
-
-# Check whether threads are available, otherwise skip this test.
-
-if (!eval { require threads; my $t = threads->new(sub { }) }) {
-    print "1..0\n";
-    exit 0;
-}
-
-my($handle, $port) = Net::Daemon::Test->Child
-    ($numTests, $^X, 't/server', '--timeout', 20, '--mode=ithreads');
-
-
-print "Making first connection to port $port...\n";
-my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
-			       'PeerPort' => $port);
-printf("%s 1\n", $fh ? "ok" : "not ok");
-printf("%s 2\n", $fh->close() ? "ok" : "not ok");
-print "Making second connection to port $port...\n";
-$fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1',
-			    'PeerPort' => $port);
-printf("%s 3\n", $fh ? "ok" : "not ok");
-eval {
-    for (my $i = 0;  $i < 20;  $i++) {
-	if (!$fh->print("$i\n")  ||  !$fh->flush()) {
-	    die "Error while writing $i: " . $fh->error() . " ($!)";
-	}
-	my $line = $fh->getline();
-	die "Error while reading $i: " . $fh->error() . " ($!)"
-	    unless defined($line);
-	die "Result error: Expected " . ($i*2) . ", got $line"
-	    unless ($line =~ /(\d+)/  &&  $1 == $i*2);
+    if (!eval { require threads; my $t = threads->new(sub { }) }) {
+         plan skip_all => "ithreads not available on this work on this system?";
+        exit;
     }
-};
-if ($@) {
-    print STDERR "$@\n";
-    print "not ok 4\n";
-} else {
-    print "ok 4\n";
+    plan tests => 65
 }
-printf("%s 5\n", $fh->close() ? "ok" : "not ok");
+
+my($handle, $port) = Net::Daemon::Test->Child(undef, $^X, 't/server', '--timeout', 20, '--mode=ithreads');
+
+
+diag("Making first connection to port $port...");
+my $fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1', 'PeerPort' => $port);
+ok($fh, "Connected to port $port on localhost");
+ok($fh->close(), "Disconnected");
+
+diag("Making second connection to port $port...");
+$fh = IO::Socket::INET->new('PeerAddr' => '127.0.0.1', 'PeerPort' => $port);
+ok($fh, "Connected to port $port on localhost");
+
+foreach my $i (1..20) {
+    
+    ok($fh->print("$i\n"), "print $i to the port") or die($fh->error() . " ($!)");
+    ok($fh->flush(), "swirly!") or die($fh->error() . " ($!)");
+    
+    my $line = $fh->getline or die("Error while reading $i: " . $fh->error() . " ($!)");
+    is($line, $i*2 . "\n", "Read line $i");
+}
+
+is($@, undef, 'No error in $@');
+
+ok($fh->close(), 'Close $fh');
+
+# Shut down the server;
+diag("Terminating test server");
+$handle->Terminate();
+undef $handle;
+
+exit;
 
 END {
-    if ($handle) { $handle->Terminate() }
+    if ($handle) { diag("Terminating test server"); $handle->Terminate() }
     if (-f "ndtest.prt") { unlink "ndtest.prt" }
 }
