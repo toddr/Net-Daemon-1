@@ -20,8 +20,8 @@ WriteMakefile(
 	        'SUFFIX' => q[.gz]
 	    },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean               => { FILES => 'Net-Daemon-*' },
-    realclean           => { 'FILES' => 't/config ndtest.prt Net-Daemon-*' },
+    clean               => { FILES => 'Net-Daemon-* *.pid' },
+    realclean           => { 'FILES' => 't/config ndtest.prt Net-Daemon-* *.pid log' },
     META_MERGE  => {
 	recommends => {
             'Sys::Syslog' => 0,
