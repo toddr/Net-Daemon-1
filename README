@@ -254,31 +254,31 @@ DESCRIPTION
         #require DBD::CSV;
 
         {
-            # 'chroot' => '/var/dbiproxy',
-            'facility' => 'daemon',
-            'pidfile' => '/var/dbiproxy/dbiproxy.pid',
-            'user' => 'nobody',
-            'group' => 'nobody',
-            'localport' => '1003',
-            'mode' => 'fork'
+        # 'chroot' => '/var/dbiproxy',
+        'facility' => 'daemon',
+        'pidfile' => '/var/dbiproxy/dbiproxy.pid',
+        'user' => 'nobody',
+        'group' => 'nobody',
+        'localport' => '1003',
+        'mode' => 'fork'
 
-            # Access control
+        # Access control
             'clients' => [
-                # Accept the local
-                {
-                    'mask' => '^192\.168\.1\.\d+$',
+            # Accept the local
+            {
+            'mask' => '^192\.168\.1\.\d+$',
                     'accept' => 1
                 },
-                # Accept myhost.company.com
-                {
-                    'mask' => '^myhost\.company\.com$',
+            # Accept myhost.company.com
+            {
+            'mask' => '^myhost\.company\.com$',
                     'accept' => 1
                 }
-                # Deny everything else
-                {
-                    'mask' => '.*',
-                    'accept' => 0
-                }
+            # Deny everything else
+            {
+            'mask' => '.*',
+            'accept' => 0
+            }
             ]
         }
 
@@ -368,6 +368,7 @@ EXAMPLE
 
       require Net::Daemon;
 
+
       package Calculator;
 
       use vars qw($VERSION @ISA);
@@ -381,9 +382,9 @@ EXAMPLE
           my($self) = @_;
           my($options) = $self->SUPER::Options();
           $options->{'base'} = { 'template' => 'base=s',
-                                 'description' => '--base                  '
-                                        . 'dec (default), hex or oct'
-                                  };
+                     'description' => '--base                  '
+                        . 'dec (default), hex or oct'
+                      };
           $options;
       }
 
@@ -392,16 +393,16 @@ EXAMPLE
           my($class, $attr, $args) = @_;
           my($self) = $class->SUPER::new($attr, $args);
           if ($self->{'parent'}) {
-              # Called via Clone()
-              $self->{'base'} = $self->{'parent'}->{'base'};
+          # Called via Clone()
+          $self->{'base'} = $self->{'parent'}->{'base'};
           } else {
-              # Initial call
-              if ($self->{'options'}  &&  $self->{'options'}->{'base'}) {
-                  $self->{'base'} = $self->{'options'}->{'base'}
+          # Initial call
+          if ($self->{'options'}  &&  $self->{'options'}->{'base'}) {
+              $self->{'base'} = $self->{'options'}->{'base'}
               }
           }
           if (!$self->{'base'}) {
-              $self->{'base'} = 'dec';
+          $self->{'base'} = 'dec';
           }
           $self;
       }
@@ -411,37 +412,37 @@ EXAMPLE
           my($line, $sock);
           $sock = $self->{'socket'};
           while (1) {
-              if (!defined($line = $sock->getline())) {
-                  if ($sock->error()) {
-                      $self->Error("Client connection error %s",
-                                   $sock->error());
-                  }
-                  $sock->close();
-                  return;
+          if (!defined($line = $sock->getline())) {
+              if ($sock->error()) {
+              $self->Error("Client connection error %s",
+                       $sock->error());
               }
-              $line =~ s/\s+$//; # Remove CRLF
-              my($result) = eval $line;
-              my($rc);
-              if ($self->{'base'} eq 'hex') {
-                  $rc = printf $sock ("%x\n", $result);
-              } elsif ($self->{'base'} eq 'oct') {
-                  $rc = printf $sock ("%o\n", $result);
-              } else {
-                  $rc = printf $sock ("%d\n", $result);
-              }
-              if (!$rc) {
-                  $self->Error("Client connection error %s",
-                               $sock->error());
-                  $sock->close();
-                  return;
-              }
+              $sock->close();
+              return;
+          }
+          $line =~ s/\s+$//; # Remove CRLF
+          my($result) = eval $line;
+          my($rc);
+          if ($self->{'base'} eq 'hex') {
+              $rc = printf $sock ("%x\n", $result);
+          } elsif ($self->{'base'} eq 'oct') {
+              $rc = printf $sock ("%o\n", $result);
+          } else {
+              $rc = printf $sock ("%d\n", $result);
+          }
+          if (!$rc) {
+              $self->Error("Client connection error %s",
+                   $sock->error());
+              $sock->close();
+              return;
+          }
           }
       }
 
       package main;
 
       my $server = Calculator->new({'pidfile' => 'none',
-                                    'localport' => 2000}, \@ARGV);
+                    'localport' => 2000}, \@ARGV);
       $server->Bind();
 
 KNOWN PROBLEMS
