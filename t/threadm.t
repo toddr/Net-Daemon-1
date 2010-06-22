@@ -1,8 +1,3 @@
-# -*- perl -*-
-#
-#   $Id: threadm.t,v 1.3 2007/05/16 13:58 mhn $
-#
-
 require 5.004;
 use strict;
 
