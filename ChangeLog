@@ -1,4 +1,11 @@
-
+2011-02-17  Malcolm Nooning  <m.nooning@comcast.net> (0.44)
+        * lib/Net/Daemon.pm Added ServClose patch by Gaspar Chilingarov
+	* t/thread.t Added patches by Daniel Macks and Joe McMahon,
+	  and added Test::More and skip_all for Windows < 5.10
+2009-03-12  Joe McMahon     <mcmahon@blekko.com> (0.44)
+       * Added necessary thread sharing to work with 5.10
+         threads model: regexp-threads,
+       * Bumped minimum required perl to 5.10 for t/threads.t tests
 2007-06-17  Malcolm Nooning  <m.nooning@comcast.net> (0.43)
         * lib/Net/Daemon.pm  Needed to up the VERSION number
 2007-06-16  Malcolm Nooning  <m.nooning@comcast.net> (0.42)

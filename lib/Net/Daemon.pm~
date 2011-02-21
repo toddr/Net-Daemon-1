@@ -34,19 +34,6 @@ use POSIX ();
 package Net::Daemon;
 
 $Net::Daemon::VERSION = '0.44';
-
-# Dummy share() in case we're >= 5.10. If we are, require/import of
-# threads::shared will replace it appropriately.
-my $this_is_510 = $^V ge v5.10.0;
-if ($this_is_510) {
-    no warnings 'redefine';
-    eval { require threads; };
-    eval { require threads::shared; };
-} else {
-    eval { require Threads; };
-}
-
-
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -54,7 +41,6 @@ if ($this_is_510) {
 #   regexp-threads.)
 #
 $Net::Daemon::RegExpLock = 1;
-threads::shared::share(\$Net::Daemon::RegExpLock) if $this_is_510;
 
 use vars qw($exit);
 

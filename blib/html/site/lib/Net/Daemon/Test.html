@@ -1,0 +1,196 @@
+<?xml version="1.0" ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<!-- saved from url=(0017)http://localhost/ -->
+<script language="JavaScript" src="../../../../displayToc.js"></script>
+<script language="JavaScript" src="../../../../tocParas.js"></script>
+<script language="JavaScript" src="../../../../tocTab.js"></script>
+<link rel="stylesheet" type="text/css" href="../../../../scineplex.css">
+<title>Net::Daemon::Test - support functions for testing Net::Daemon servers</title>
+<link rel="stylesheet" href="../../../../Active.css" type="text/css" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:" />
+</head>
+
+<body>
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<script>writelinks('__top__',4);</script>
+<h1><a>Net::Daemon::Test - support functions for testing Net::Daemon servers</a></h1>
+<p><a name="__index__"></a></p>
+
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#available_methods">AVAILABLE METHODS</a></li>
+	<ul>
+
+		<li><a href="#server_part">Server part</a></li>
+		<li><a href="#client_part">Client part</a></li>
+	</ul>
+
+	<li><a href="#author_and_copyright">AUTHOR AND COPYRIGHT</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>Net::Daemon::Test - support functions for testing Net::Daemon servers</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<pre>
+    <span class="comment"># This is the server, stored in the file "servertask".</span>
+    <span class="comment">#</span>
+    <span class="comment"># Create a subclass of Net::Daemon::Test, which in turn is</span>
+    <span class="comment"># a subclass of Net::Daemon</span>
+    <span class="keyword">use</span> <span class="variable">Net::Daemon::Test</span> <span class="operator">();</span>
+    <span class="keyword">package</span> <span class="variable">MyDaemon</span><span class="operator">;</span>
+    <span class="variable">@MyDaemon::ISA</span> <span class="operator">=</span> <span class="string">qw(Net::Daemon::Test)</span><span class="operator">;</span>
+</pre>
+<pre>
+    <span class="keyword">sub</span><span class="variable"> Run </span><span class="operator">{</span>
+        <span class="comment"># Overwrite this and other methods, as you like.</span>
+    <span class="operator">}</span>
+</pre>
+<pre>
+    <span class="keyword">my</span> <span class="variable">$self</span> <span class="operator">=</span> <span class="variable">Net::Daemon</span><span class="operator">-&gt;</span><span class="variable">new</span><span class="operator">(\</span><span class="variable">%attr</span><span class="operator">,</span> <span class="operator">\</span><span class="variable">@options</span><span class="operator">);</span>
+    <span class="keyword">eval</span> <span class="operator">{</span> <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Bind</span><span class="operator">()</span> <span class="operator">};</span>
+    <span class="keyword">if</span> <span class="operator">(</span><span class="variable">$@</span><span class="operator">)</span> <span class="operator">{</span>
+        <span class="keyword">die</span> <span class="string">"Server cannot bind: $!"</span><span class="operator">;</span>
+    <span class="operator">}</span>
+    <span class="keyword">eval</span> <span class="operator">{</span> <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Run</span><span class="operator">()</span> <span class="operator">};</span>
+    <span class="keyword">if</span> <span class="operator">(</span><span class="variable">$@</span><span class="operator">)</span> <span class="operator">{</span>
+        <span class="keyword">die</span> <span class="string">"Unexpected server termination: $@"</span><span class="operator">;</span>
+    <span class="operator">}</span>
+</pre>
+<pre>
+    <span class="comment"># This is the client, the real test script, note we call the</span>
+    <span class="comment"># "servertask" file below:</span>
+    <span class="comment">#</span>
+    <span class="comment"># Call the Child method to spawn a child. Don't forget to use</span>
+    <span class="comment"># the timeout option.</span>
+    <span class="keyword">use</span> <span class="variable">Net::Daemon::Test</span> <span class="operator">();</span>
+</pre>
+<pre>
+    <span class="keyword">my</span><span class="operator">(</span><span class="variable">$handle</span><span class="operator">,</span> <span class="variable">$port</span><span class="operator">)</span> <span class="operator">=</span> <span class="keyword">eval</span> <span class="operator">{</span>
+        <span class="variable">Net::Daemon::Test</span><span class="operator">-&gt;</span><span class="variable">Child</span><span class="operator">(</span><span class="number">5</span><span class="operator">,</span> <span class="comment"># Number of subtests</span>
+                                 <span class="string">'servertask'</span><span class="operator">,</span> <span class="string">'--timeout'</span><span class="operator">,</span> <span class="string">'20'</span><span class="operator">)</span>
+    <span class="operator">};</span>
+    <span class="keyword">if</span> <span class="operator">(</span><span class="variable">$@</span><span class="operator">)</span> <span class="operator">{</span>
+        <span class="keyword">print</span> <span class="string">"not ok 1 $@\n"</span><span class="operator">;</span>
+        <span class="keyword">exit</span> <span class="number">0</span><span class="operator">;</span>
+    <span class="operator">}</span>
+    <span class="keyword">print</span> <span class="string">"ok 1\n"</span><span class="operator">;</span>
+</pre>
+<pre>
+    # Real tests following here
+    ...</pre>
+<pre>
+    <span class="comment"># Terminate the server</span>
+    <span class="variable">$handle</span><span class="operator">-&gt;</span><span class="variable">Terminate</span><span class="operator">();</span>
+</pre>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This module is a frame for creating test scripts of Net::Daemon based
+server packages, preferrably using Test::Harness, but that's your
+choice.</p>
+<p>A test consists of two parts: The client part and the server part.
+The test is executed by the child part which invokes the server part,
+by spawning a child process and invoking an external Perl script.
+(Of course we woultn't need this external file with <a href="../../../../lib/pods/perlfunc.html#fork"><code>fork()</code></a>, but that's
+the best possibility to make the test scripts portable to Windows
+without requiring threads in the test script.)</p>
+<p>The server part is a usual Net::Daemon application, for example a script
+like dbiproxy. The only difference is that it derives from
+Net::Daemon::Test and not from Net::Daemon, the main difference is that
+the <strong>Bind</strong> method attempts to allocate a port automatically. Once a
+port is allocated, the number is stored in the file &quot;ndtest.prt&quot;.</p>
+<p>After spawning the server process, the child will wait ten seconds
+(hopefully sufficient) for the creation of ndtest.prt.</p>
+<p>
+</p>
+<hr />
+<h1><a name="available_methods">AVAILABLE METHODS</a></h1>
+<p>
+</p>
+<h2><a name="server_part">Server part</a></h2>
+<dl>
+<dt><strong><a name="options" class="item">Options</a></strong></dt>
+
+<dd>
+<p>Adds an option <strong>--timeout</strong> to Net::Daemon: The server's Run method
+will die after at most 20 seconds.</p>
+</dd>
+<dt><strong><a name="bind" class="item">Bind</a></strong></dt>
+
+<dd>
+<p>(Instance method) This is mainly the default Bind method, but it attempts
+to find and allocate a free port in two ways: First of all, it tries to
+call Bind with port 0, most systems will automatically choose a port in
+that case. If that seems to fail, ports 30000-30049 are tried. We
+hope, one of these will succeed. :-)</p>
+</dd>
+<dt><strong><a name="run" class="item">Run</a></strong></dt>
+
+<dd>
+<p>(Instance method) Overwrites the Net::Daemon's method by adding a timeout.</p>
+</dd>
+</dl>
+<p>sub Run ($) {
+    my $self = shift;
+    $self-&gt;<a href="#run"><code>Run()</code></a>;
+}</p>
+<p>
+</p>
+<h2><a name="client_part">Client part</a></h2>
+<dl>
+<dt><strong><a name="child" class="item">Child</a></strong></dt>
+
+<dd>
+<p>(Class method) Attempts to spawn a server process. The server process is
+expected to create the file 'ndtest.prt' with the port number.</p>
+<p>The method returns a process handle and a port number. The process handle
+offers a method <strong>Terminate</strong> that may later be used to stop the server
+process.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="author_and_copyright">AUTHOR AND COPYRIGHT</a></h1>
+<pre>
+  Net::Daemon is Copyright (C) 1998, Jochen Wiedmann
+                                     Am Eisteich 9
+                                     72555 Metzingen
+                                     Germany</pre>
+<pre>
+                                     Phone: +49 7123 14887
+                                     Email: joe@ispsoft.de</pre>
+<pre>
+  All rights reserved.</pre>
+<p>You may distribute under the terms of either the GNU General Public
+License or the Artistic License, as specified in the Perl README file.</p>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><a href="../../../../Net/Daemon(3).html">the Net::Daemon(3) manpage</a>, <a href="../../../../Test/Harness(3).html">the Test::Harness(3) manpage</a></p>
+
+</body>
+
+</html>

@@ -1,0 +1,177 @@
+<?xml version="1.0" ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+<head>
+<!-- saved from url=(0017)http://localhost/ -->
+<script language="JavaScript" src="../../../../displayToc.js"></script>
+<script language="JavaScript" src="../../../../tocParas.js"></script>
+<script language="JavaScript" src="../../../../tocTab.js"></script>
+<link rel="stylesheet" type="text/css" href="../../../../scineplex.css">
+<title>Net::Daemon::Log - Utility functions for logging</title>
+<link rel="stylesheet" href="../../../../Active.css" type="text/css" />
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:" />
+</head>
+
+<body>
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<script>writelinks('__top__',4);</script>
+<h1><a>Net::Daemon::Log - Utility functions for logging</a></h1>
+<p><a name="__index__"></a></p>
+
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#warning">WARNING</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<ul>
+
+		<li><a href="#generic_logging">Generic Logging</a></li>
+		<li><a href="#utility_methods">Utility methods</a></li>
+		<li><a href="#chossing_a_logging_target">Chossing a logging target</a></li>
+	</ul>
+
+	<li><a href="#multithreading">MULTITHREADING</a></li>
+	<li><a href="#author_and_copyright">AUTHOR AND COPYRIGHT</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>Net::Daemon::Log - Utility functions for logging</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<pre>
+  <span class="comment"># Choose logging method: syslog or Win32::EventLog</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="operator">{</span><span class="string">'facility'</span><span class="operator">}</span> <span class="operator">=</span> <span class="string">'mail'</span><span class="operator">;</span> <span class="comment"># Default: Daemon</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="operator">{</span><span class="string">'logfile'</span><span class="operator">}</span> <span class="operator">=</span> <span class="keyword">undef</span><span class="operator">;</span>   <span class="comment"># Default</span>
+</pre>
+<pre>
+  <span class="comment"># Choose logging method: stderr</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="operator">{</span><span class="string">'logfile'</span><span class="operator">}</span> <span class="operator">=</span> <span class="number">1</span><span class="operator">;</span>
+</pre>
+<pre>
+  <span class="comment"># Choose logging method: IO handle</span>
+  <span class="keyword">my</span> <span class="variable">$file</span> <span class="operator">=</span> <span class="variable">IO::File</span><span class="operator">-&gt;</span><span class="variable">new</span><span class="operator">(</span><span class="string">"my.log"</span><span class="operator">,</span> <span class="string">"a"</span><span class="operator">);</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="operator">{</span><span class="string">'logfile'</span><span class="operator">}</span> <span class="operator">=</span> <span class="variable">$file</span><span class="operator">;</span>
+</pre>
+<pre>
+  <span class="comment"># Debugging messages (equivalent):</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Log</span><span class="operator">(</span><span class="string">'debug'</span><span class="operator">,</span> <span class="string">"This is a debugging message"</span><span class="operator">);</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Debug</span><span class="operator">(</span><span class="string">"This is a debugging message"</span><span class="operator">);</span>
+</pre>
+<pre>
+  <span class="comment"># Error messages (equivalent):</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Log</span><span class="operator">(</span><span class="string">'err'</span><span class="operator">,</span> <span class="string">"This is an error message"</span><span class="operator">);</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Error</span><span class="operator">(</span><span class="string">"This is an error message"</span><span class="operator">);</span>
+</pre>
+<pre>
+  <span class="comment"># Fatal error messages (implies 'die')</span>
+  <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Fatal</span><span class="operator">(</span><span class="string">"This is a fatal error message"</span><span class="operator">);</span>
+</pre>
+<p>
+</p>
+<hr />
+<h1><a name="warning">WARNING</a></h1>
+<p>THIS IS ALPHA SOFTWARE. It is *only* 'Alpha' because the interface (API)
+is not finalised. The Alpha status does not reflect code quality or
+stability.</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>Net::Daemon::Log is a utility class for portable logging messages.
+By default it uses syslog (Unix) or Win32::EventLog (Windows), but
+logging messages can also be redirected to stderr or a log file.</p>
+<p>
+</p>
+<h2><a name="generic_logging">Generic Logging</a></h2>
+<pre>
+    <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Log</span><span class="operator">(</span><span class="variable">$level</span><span class="operator">,</span> <span class="variable">$msg</span><span class="operator">,</span> <span class="variable">@args</span><span class="operator">);</span>
+</pre>
+<p>This is the generic interface. The logging level is in syslog style,
+thus one of the words 'debug', 'info', 'notice', 'err' or 'crit'.
+You'll rarely need info and notice and I can hardly imagine a reason
+for crit (critical). In 95% of all cases debug and err will be
+sufficient.</p>
+<p>The logging string $msg is a format string similar to printf.</p>
+<p>
+</p>
+<h2><a name="utility_methods">Utility methods</a></h2>
+<pre>
+    <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Debug</span><span class="operator">(</span><span class="variable">$msg</span><span class="operator">,</span> <span class="variable">@args</span><span class="operator">);</span>
+    <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Error</span><span class="operator">(</span><span class="variable">$msg</span><span class="operator">,</span> <span class="variable">@args</span><span class="operator">);</span>
+    <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">Fatal</span><span class="operator">(</span><span class="variable">$msg</span><span class="operator">,</span> <span class="variable">@args</span><span class="operator">);</span>
+</pre>
+<p>These are replacements for logging with levels debug and err. The difference
+between the latter two is that Fatal includes throwing a Perl exception.</p>
+<p>
+</p>
+<h2><a name="chossing_a_logging_target">Chossing a logging target</a></h2>
+<p>By default logging will happen to syslog (Unix) or EventLog (Windows).
+However you may choose logging to stderr by setting</p>
+<pre>
+    <span class="variable">$self</span><span class="operator">-&gt;</span><span class="operator">{</span><span class="string">'logfile'</span><span class="operator">}</span> <span class="operator">=</span> <span class="number">1</span><span class="operator">;</span>
+</pre>
+<p>This is required if neither of syslog and EventLog is available. An
+alternative option is setting</p>
+<pre>
+    <span class="variable">$self</span><span class="operator">-&gt;</span><span class="operator">{</span><span class="string">'logfile'</span><span class="operator">}</span> <span class="operator">=</span> <span class="variable">$handle</span><span class="operator">;</span>
+</pre>
+<p>where $handle is any object supporting a <em>print</em> method, for example
+an IO::Handle object. Usually the logging target is choosen as soon
+as you call $self-&gt;<code>Log()</code> the first time. However, you may force
+choosing the target by doing a</p>
+<pre>
+    <span class="variable">$self</span><span class="operator">-&gt;</span><span class="variable">OpenLog</span><span class="operator">();</span>
+</pre>
+<p>before calling Log the first time.</p>
+<p>
+</p>
+<hr />
+<h1><a name="multithreading">MULTITHREADING</a></h1>
+<p>The Multithreading capabitities of this class are depending heavily
+on the underlying classes Sys::Syslog, Win32::EventLog or IO::Handle.
+If they are thread safe, you can well assume that this package is
+too. (The exception being that you should better call
+$self-&gt;<code>OpenLog()</code> before threading.)</p>
+<p>
+</p>
+<hr />
+<h1><a name="author_and_copyright">AUTHOR AND COPYRIGHT</a></h1>
+<pre>
+  Net::Daemon is Copyright (C) 1998, Jochen Wiedmann
+                                     Am Eisteich 9
+                                     72555 Metzingen
+                                     Germany</pre>
+<pre>
+                                     Phone: +49 7123 14887
+                                     Email: joe@ispsoft.de</pre>
+<pre>
+  All rights reserved.</pre>
+<pre>
+  You may distribute this package under the terms of either the GNU
+  General Public License or the Artistic License, as specified in the
+  Perl README file.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><a href="../../../../Net/Daemon(3).html">the Net::Daemon(3) manpage</a>, <a href="../../../../Sys/Syslog(3).html">the Sys::Syslog(3) manpage</a>, <a href="../../../../Win32/EventLog(3).html">the Win32::EventLog(3) manpage</a>,
+<a href="../../../../IO/Handle(3).html">the IO::Handle(3) manpage</a></p>
+
+</body>
+
+</html>

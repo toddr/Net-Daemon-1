@@ -13,9 +13,19 @@
 #
 #
 
+my $this_is_510 = $^V ge v5.10.0;
+
 use Thread ();
 
+if ($this_is_510) {
+    eval {require threads::shared};
+}
+
 my $numChilds;
+if ($this_is_510) {
+    eval { threads::shared::share($numChilds) };
+}
+
 my $regExpLock = @ARGV ? 1 : 0;
 
 # Repeat generating a random number and check if it contains the

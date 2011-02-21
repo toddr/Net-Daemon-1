@@ -368,6 +368,7 @@ EXAMPLE
 
       require Net::Daemon;
 
+
       package Calculator;
 
       use vars qw($VERSION @ISA);

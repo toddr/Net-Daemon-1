@@ -6,14 +6,36 @@
 require 5.004;
 use strict;
 
+BEGIN { push(@INC, "C:/temp/Net-Daemon/blib/lib");}
 use IO::Socket ();
 use Config ();
 use Net::Daemon::Test ();
+use Test::More;
 
 my $numTests = 5;
 
-
 # Check whether threads are available, otherwise skip this test.
+my $version = $^V;
+$version =~ s/v(\d+\.\d+)\.\d+/$1/;
+
+
+if ($version >= 5.10) {
+
+    # The paragraph below is pasted from the perlthrtut, 2010.11.20
+    #
+    # NOTE: There was another older Perl threading flavor called the
+    # 5.005 model that used the Threads class. This old model was
+    # known to have problems, is deprecated, and was removed for
+    # release 5.10. You are strongly encouraged to migrate any
+    # existing 5.005 threads code to the new model as soon as
+    # possible.
+    my $message = "Using Perl version $version\n" .
+                  "\tOld threads style supplanted by ithreads after ".
+                  "Perl version 5.10\n";
+    print STDERR "$message";
+    plan(skip_all => $message);
+    exit;
+}
 
 if (!eval { require Thread; my $t = Thread->new(sub { }) }) {
     print "1..0\n";
@@ -38,8 +60,9 @@ eval {
 	if (!$fh->print("$i\n")  ||  !$fh->flush()) {
 	    die "Error while writing $i: " . $fh->error() . " ($!)";
 	}
+
 	my $line = $fh->getline();
-	die "Error while reading $i: " . $fh->error() . " ($!)"
+	die "Error while reading $i: " . $fh->error() . " ($!)\n"
 	    unless defined($line);
 	die "Result error: Expected " . ($i*2) . ", got $line"
 	    unless ($line =~ /(\d+)/  &&  $1 == $i*2);
