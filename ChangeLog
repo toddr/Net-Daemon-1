@@ -1,3 +1,8 @@
+
+
+2011-02-18  Malcolm Nooning  <m.nooning@comcast.net> (0.45)
+        * lib/Net/Daemon.pm Used "make dist" to create the uploaded
+	* distribution.  Bumped up the version number first.
 2011-02-17  Malcolm Nooning  <m.nooning@comcast.net> (0.44)
         * lib/Net/Daemon.pm Added ServClose patch by Gaspar Chilingarov
 	* t/thread.t Added patches by Daniel Macks and Joe McMahon,
