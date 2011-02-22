@@ -33,17 +33,14 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.45';
+$Net::Daemon::VERSION = '0.46';
 
 # Dummy share() in case we're >= 5.10. If we are, require/import of
 # threads::shared will replace it appropriately.
 my $this_is_510 = $^V ge v5.10.0;
 if ($this_is_510) {
-    no warnings 'redefine';
     eval { require threads; };
     eval { require threads::shared; };
-} else {
-    eval { require Threads; };
 }
 
 
@@ -291,7 +288,9 @@ sub new ($$;$) {
     }
 
     if ($self->{'mode'} eq 'ithreads') {
+        no warnings 'redefine';
 	require threads;
+        use warnings 'redefine';
     } elsif ($self->{'mode'} eq 'threads') {
 	require Thread;
     } elsif ($self->{'mode'} eq 'fork') {

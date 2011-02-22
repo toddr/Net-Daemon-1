@@ -1,5 +1,9 @@
 
-
+2011-02-22  Malcolm Nooning  <m.nooning@comcast.net> (0.46)
+        * lib/Net/Daemon.pm Fixed "Subroutine import redefined" problem
+	  that perl 5.8.8 CPAN testers was getting.  It was due to
+	  more than one "require threads" being run.
+	* distribution.  Bumped up the version number first.
 2011-02-18  Malcolm Nooning  <m.nooning@comcast.net> (0.45)
         * lib/Net/Daemon.pm Used "make dist" to create the uploaded
 	* distribution.  Bumped up the version number first.
