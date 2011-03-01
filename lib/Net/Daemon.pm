@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.46';
+$Net::Daemon::VERSION = '0.47';
 
 # Dummy share() in case we're >= 5.10. If we are, require/import of
 # threads::shared will replace it appropriately.
@@ -265,7 +265,7 @@ sub new ($$;$) {
     if ($self->{'childs'}) {
 	$self->{'mode'} = 'single';
     } elsif (!defined($self->{'mode'})) {
-	if (eval { require thread }) {
+	if (eval { require threads }) {
 	    $self->{'mode'} = 'ithreads';
 	} elsif (eval { require Thread }) {
 	    $self->{'mode'} = 'threads';
