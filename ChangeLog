@@ -1,3 +1,6 @@
+2011-03-09 Malcolm Nooning  <m.nooning@comcast.net> (0.48)
+        * t/forkm.t Patched perl Leon Timmermans
+	  http://rt.perl.org/rt3/Public/Bug/Display.html?id=83646
 2011-03-01 Malcolm Nooning  <m.nooning@comcast.net> (0.47)
         * lib/Net/Daemon.pm Patched per bug 32887
 	  "ithreads not detected due to a typo"

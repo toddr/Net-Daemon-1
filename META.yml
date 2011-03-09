@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Net-Daemon
-version:            0.47
+version:            0.48
 abstract:           Perl extension for portable daemons
 author:
     - Jochen Wiedmann (joe@ispsoft.de)

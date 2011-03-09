@@ -33,7 +33,7 @@ use POSIX ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.47';
+$Net::Daemon::VERSION = '0.48';
 
 # Dummy share() in case we're >= 5.10. If we are, require/import of
 # threads::shared will replace it appropriately.

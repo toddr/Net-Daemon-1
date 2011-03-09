@@ -8,7 +8,7 @@ use Config ();
 use Net::Daemon::Test ();
 use Fcntl ();
 use Config ();
-
+use POSIX qw/WNOHANG/;
 
 my $debug = 0;
 my $dh;
@@ -130,7 +130,8 @@ my %childs;
 sub CatchChild {
     &log("CatchChild: ->");
     for(;;) {
-	my $pid = wait;
+	my $pid = waitpid -1, WNOHANG;
+        last if $pid <= 0;
 	if ($pid > 0) {
 	    &log("CatchChild: $pid");
 	    if (exists $childs{$pid}) {
