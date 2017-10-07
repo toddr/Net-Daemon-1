@@ -30,6 +30,7 @@ use Symbol           ();
 use IO::Socket       ();
 use Net::Daemon::Log ();
 use POSIX            ();
+use File::Spec       ();
 
 our $VERSION = '0.48';
 our @ISA = qw(Net::Daemon::Log);
@@ -208,7 +209,7 @@ sub ReadConfigFile {
     if ( !-f $file ) {
         $self->Fatal("No such config file: $file");
     }
-    my $copts = do $file;
+    my $copts = do File::Spec->rel2abs($file);
     if ($@) {
         $self->Fatal("Error while processing config file $file: $@");
     }
