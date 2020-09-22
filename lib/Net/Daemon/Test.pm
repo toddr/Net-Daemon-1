@@ -1,8 +1,6 @@
-# -*- perl -*-
+############################################################################
 #
-#   $Id: Test.pm,v 1.2 1999/08/12 14:28:57 joe Exp $
-#
-#   Net::Daemon - Base class for implementing TCP/IP daemons
+#   Net::Daemon::Test
 #
 #   Copyright (C) 1998, Jochen Wiedmann
 #                       Am Eisteich 9
@@ -32,14 +30,14 @@
 package Net::Daemon::Test;
 
 use strict;
-require 5.004;
+use warnings;
 
 use Net::Daemon    ();
 use Symbol         ();
 use File::Basename ();
 
-$Net::Daemon::Test::VERSION = '0.03';
-@Net::Daemon::Test::ISA     = qw(Net::Daemon);
+our $VERSION = '0.03';
+our @ISA     = qw(Net::Daemon);
 
 =head1 NAME
 
@@ -54,7 +52,7 @@ Net::Daemon::Test - support functions for testing Net::Daemon servers
     # a subclass of Net::Daemon
     use Net::Daemon::Test ();
     package MyDaemon;
-    @MyDaemon::ISA = qw(Net::Daemon::Test);
+    our @ISA = qw(Net::Daemon::Test);
 
     sub Run {
 	# Overwrite this and other methods, as you like.

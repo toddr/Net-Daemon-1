@@ -1,8 +1,6 @@
-# -*- perl -*-
+############################################################################
 #
-#   $Id: Log.pm,v 1.3 1999/09/26 14:50:13 joe Exp $
-#
-#   Net::Daemon - Base class for implementing TCP/IP daemons
+#   Net::Daemon::Log
 #
 #   Copyright (C) 1998, Jochen Wiedmann
 #                       Am Eisteich 9
@@ -20,12 +18,14 @@
 #
 ############################################################################
 
-require 5.004;
 use strict;
+use warnings;
 
 package Net::Daemon::Log;
 
-$Net::Daemon::Log::VERSION = '0.01';
+our $VERSION = '0.02';
+
+use Config;
 
 ############################################################################
 #

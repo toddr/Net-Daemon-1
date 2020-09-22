@@ -1,6 +1,4 @@
-# -*- perl -*-
-#
-#   $Id: Daemon.pm,v 1.3 1999/09/26 14:50:12 joe Exp $
+############################################################################
 #
 #   Net::Daemon - Base class for implementing TCP/IP daemons
 #
@@ -20,8 +18,8 @@
 #
 ############################################################################
 
-require 5.004;
 use strict;
+use warnings;
 
 use Getopt::Long     ();
 use Symbol           ();
@@ -32,7 +30,7 @@ use POSIX            ();
 
 package Net::Daemon;
 
-$Net::Daemon::VERSION = '0.48';
+our $VERSION = '0.48';
 
 # Dummy share() in case we're >= 5.10. If we are, require/import of
 # threads::shared will replace it appropriately.
@@ -42,16 +40,16 @@ if ($this_is_510) {
     eval { require threads::shared; };
 }
 
-@Net::Daemon::ISA = qw(Net::Daemon::Log);
+our @ISA = qw(Net::Daemon::Log);
 
 #
 #   Regexps aren't thread safe, as of 5.00502 :-( (See the test script
 #   regexp-threads.)
 #
-$Net::Daemon::RegExpLock = 1;
-threads::shared::share( \$Net::Daemon::RegExpLock ) if $this_is_510;
+our $RegExpLock = 1;
+threads::shared::share( \$RegExpLock ) if $this_is_510;
 
-use vars qw($exit);
+our $exit;
 
 ############################################################################
 #
@@ -396,7 +394,7 @@ sub Accept ($) {
             # 5.00502 :-(
             #
             my $lock;
-            $lock = lock($Net::Daemon::RegExpLock)
+            $lock = lock($RegExpLock)
               if ( $self->{'mode'} eq 'threads' );
             foreach my $mask (@$masks) {
                 foreach my $alias (@patterns) {
@@ -1192,17 +1190,14 @@ given base.
   #
   # Calculator server
   #
-  require 5.004;
   use strict;
 
   require Net::Daemon;
 
-
   package Calculator;
 
-  use vars qw($VERSION @ISA);
-  $VERSION = '0.01';
-  @ISA = qw(Net::Daemon); # to inherit from Net::Daemon
+  our $VERSION = '0.01';
+  our @ISA = qw(Net::Daemon); # to inherit from Net::Daemon
 
   sub Version ($) { 'Calculator Example Server, 0.01'; }
 

@@ -1,7 +1,5 @@
-# -*- perl -*-
-#
-# $Id: Makefile.PL,v 1.2 1999/08/12 14:28:53 joe Exp $
-#
+use strict;
+use warnings;
 
 use ExtUtils::MakeMaker;
 
