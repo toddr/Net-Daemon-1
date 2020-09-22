@@ -6,3 +6,9 @@
 ^t/config$
 \bCVS\b
 ^Net-Daemon-\d+\.\d+/
+^.github/
+^cpanfile$
+^\.gitignore$
+^\.git/
+/MANIFEST.bak
+/MYMETA\.
