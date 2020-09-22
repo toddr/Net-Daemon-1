@@ -57,7 +57,6 @@ sub OpenLog($) {
         }
         if (   $^O ne 'solaris'
             && $^O ne 'freebsd'
-            && defined(Sys::Syslog::setlogsock())
             && eval { Sys::Syslog::_PATH_LOG() } ) {
             Sys::Syslog::setlogsock('unix');
         }
