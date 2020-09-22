@@ -20,8 +20,8 @@ eval {
     }
 };
 if ( !$ok ) {
-    print "1..0\n";
-    exit 0;
+    print "1..0 # SKIP This test requires a system with working forks.\n";
+    exit;
 }
 
 my $numTests = 5;

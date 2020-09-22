@@ -17,12 +17,12 @@ if ($debug) {
     open( $dh, ">", "forkm.log" ) or die "Failed to open forkm.log: $!";
 }
 
-sub log($) {
+sub DEBUG {
     my $msg = shift;
     print $dh "$$: $msg\n" if $dh;
 }
 
-&log("Start");
+DEBUG("Start");
 my $ok;
 eval {
     if ( $^O ne "MSWin32" ) {
@@ -35,8 +35,8 @@ eval {
     }
 };
 if ( !$ok ) {
-    &log("!ok");
-    print "1..0\n";
+    DEBUG("!ok");
+    print "1..0 # SKIP This test requires a system with working forks.\n";
     exit;
 }
 
@@ -63,12 +63,12 @@ sub ReadWrite {
     my $fh = shift;
     my $i  = shift;
     my $j  = shift;
-    &log("ReadWrite: -> fh=$fh, i=$i, j=$j");
+    DEBUG("ReadWrite: -> fh=$fh, i=$i, j=$j");
     if ( !$fh->print("$j\n") || !$fh->flush() ) {
         die "Child $i: Error while writing $j: " . $fh->error() . " ($!)";
     }
     my $line = $fh->getline();
-    &log("ReadWrite: line=$line");
+    DEBUG("ReadWrite: line=$line");
     die "Child $i: Error while reading: " . $fh->error() . " ($!)"
       unless defined($line);
     my $num;
@@ -76,13 +76,13 @@ sub ReadWrite {
       unless defined( $num = IsNum($line) );
     die "Child $i: Expected " . ( $j * 2 ) . ", got $num"
       unless $j * 2 == $num;
-    &log("ReadWrite: <-");
+    DEBUG("ReadWrite: <-");
 }
 
 sub MyChild {
     my $i = shift;
 
-    &log("MyChild: -> $i");
+    DEBUG("MyChild: -> $i");
 
     eval {
         my $fh = IO::Socket::INET->new(
@@ -90,7 +90,7 @@ sub MyChild {
             'PeerPort' => $port
         );
         if ( !$fh ) {
-            &log("MyChild: Cannot connect: $!");
+            DEBUG("MyChild: Cannot connect: $!");
             die "Cannot connect: $!";
         }
         for ( my $j = 0; $j < 1000; $j++ ) {
@@ -99,15 +99,15 @@ sub MyChild {
     };
     if ($@) {
         print STDERR "Client: Error $@\n";
-        &log("MyChild: Client: Error $@");
+        DEBUG("MyChild: Client: Error $@");
         return 0;
     }
-    &log("MyChild: <-");
+    DEBUG("MyChild: <-");
     return 1;
 }
 
 sub ShowResults {
-    &log("ShowResults: ->");
+    DEBUG("ShowResults: ->");
     my @results;
     for ( my $i = 1; $i <= 10; $i++ ) {
         $results[ $i - 1 ] = "not ok $i\n";
@@ -122,19 +122,19 @@ sub ShowResults {
     for ( my $i = 1; $i <= 10; $i++ ) {
         print $results[ $i - 1 ];
     }
-    &log("ShowResults: <-");
+    DEBUG("ShowResults: <-");
     exit 0;
 }
 
 my %childs;
 
 sub CatchChild {
-    &log("CatchChild: ->");
+    DEBUG("CatchChild: ->");
     for ( ;; ) {
         my $pid = waitpid -1, WNOHANG;
         last if $pid <= 0;
         if ( $pid > 0 ) {
-            &log("CatchChild: $pid");
+            DEBUG("CatchChild: $pid");
             if ( exists $childs{$pid} ) {
                 delete $childs{$pid};
                 if ( keys(%childs) == 0 ) {
@@ -147,13 +147,13 @@ sub CatchChild {
         }
     }
     $SIG{'CHLD'} = \&CatchChild;
-    &log("CatchChild: <-");
+    DEBUG("CatchChild: <-");
 }
 $SIG{'CHLD'} = \&CatchChild;
 
 # Spawn 10 childs, each of them running a series of test
 unlink "log";
-&log("Spawning childs");
+DEBUG("Spawning childs");
 for ( my $i = 0; $i < 10; $i++ ) {
     if ( defined( my $pid = fork() ) ) {
         if ($pid) {
@@ -162,7 +162,7 @@ for ( my $i = 0; $i < 10; $i++ ) {
             $childs{$pid} = $i;
         }
         else {
-            &log("Child starting");
+            DEBUG("Child starting");
 
             # This is the child
             undef $handle;
@@ -192,7 +192,7 @@ while ( $secs > 0 ) {
 }
 
 END {
-    &log( "END: -> handle=" . ( defined($handle) ? $handle : "undef" ) );
+    DEBUG( "END: -> handle=" . ( defined($handle) ? $handle : "undef" ) );
     if ($handle) {
         $handle->Terminate();
         undef $handle;
@@ -202,6 +202,6 @@ END {
     }
     %childs = ();
     unlink "ndtest.prt";
-    &log("END: <-");
+    DEBUG("END: <-");
     exit 0;
 }

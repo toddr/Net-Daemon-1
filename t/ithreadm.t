@@ -10,15 +10,17 @@ use IO::Socket        ();
 use Config            ();
 use Net::Daemon::Test ();
 use Fcntl             ();
-use Config            ();
+
+use Config;
 
 $|  = 1;
 $^W = 1;
 
-if ( !eval { require threads } ) {
-    print "1..0\n";
+if ( !$Config{useithreads} ) {
+    print "1..0 # SKIP This test requires a perl with working ithreads.\n";
     exit 0;
 }
+require threads;
 
 my ( $handle, $port );
 if (@ARGV) {

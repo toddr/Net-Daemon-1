@@ -6,23 +6,19 @@
 require 5.004;
 use strict;
 
+use Config;
 use IO::Socket        ();
-use Config            ();
 use Net::Daemon::Test ();
 
 my $numTests = 5;
 
 # Check whether threads are available, otherwise skip this test.
 
-if (
-    !eval {
-        require threads;
-        my $t = threads->new( sub { } );
-    }
-) {
-    print "1..0\n";
+if ( !$Config{useithreads} ) {
+    print "1..0 # SKIP This test requires a perl with working ithreads.\n";
     exit 0;
 }
+require threads;
 
 my ( $handle, $port ) = Net::Daemon::Test->Child( $numTests, $^X, 't/server', '--timeout', 20, '--mode=ithreads' );
 
