@@ -19,10 +19,8 @@ use IO::Socket        ();
 
 package Multiplier;
 
-use vars qw($VERSION @ISA);
-
-$VERSION = '0.01';
-@ISA     = qw(Net::Daemon::Test);
+our $VERSION = '0.01';
+our @ISA     = qw(Net::Daemon::Test);
 
 sub Version ($) {
     return "Multiplier - A simple network calculator; 1998, Jochen Wiedmann";
