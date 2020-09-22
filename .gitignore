@@ -1,0 +1,8 @@
+/MYMETA.*
+/META.*
+/Makefile
+/blib/*
+/log
+/ndtest.prt
+/pm_to_blib
+/t/config
