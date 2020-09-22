@@ -47,7 +47,7 @@ sub OpenLog($) {
     if ( $Config::Config{'archname'} =~ /win32/i ) {
         require Win32::EventLog;
         $self->{'eventLog'} = Win32::EventLog->new( ref($self), '' )
-          or die "Cannot open EventLog:" . &Win32::GetLastError();
+          or die "Cannot open EventLog:" . Win32::GetLastError();
         $self->{'$eventId'} = 0;
     }
     else {
@@ -57,11 +57,11 @@ sub OpenLog($) {
         }
         if (   $^O ne 'solaris'
             && $^O ne 'freebsd'
-            && defined(&Sys::Syslog::setlogsock)
-            && eval { &Sys::Syslog::_PATH_LOG() } ) {
-            &Sys::Syslog::setlogsock('unix');
+            && defined(Sys::Syslog::setlogsock())
+            && eval { Sys::Syslog::_PATH_LOG() } ) {
+            Sys::Syslog::setlogsock('unix');
         }
-        &Sys::Syslog::openlog(
+        Sys::Syslog::openlog(
             $self->{'logname'} || ref($self), 'pid',
             $self->{'facility'} || 'daemon'
         );
@@ -120,7 +120,7 @@ sub Log ($$$;@) {
         );
     }
     else {
-        &Sys::Syslog::syslog( $level, "$tid$format", @args );
+        Sys::Syslog::syslog( $level, "$tid$format", @args );
     }
 }
 

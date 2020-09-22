@@ -291,7 +291,7 @@ sub Child ($$@) {
 
         print "Starting process: proc = $path, args = ", join( " ", @_ ), "\n";
         if (
-            !&Win32::Process::Create(
+            !Win32::Process::Create(
                 $pid, $path,
                 join( " ", @_ ), 0,
                 Win32::Process::DETACHED_PROCESS(),
