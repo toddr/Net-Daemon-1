@@ -42,10 +42,6 @@ if ($this_is_510) {
 
 our @ISA = qw(Net::Daemon::Log);
 
-#
-#   Regexps aren't thread safe, as of 5.00502 :-( (See the test script
-#   regexp-threads.)
-#
 our $RegExpLock = 1;
 threads::shared::share( \$RegExpLock ) if $this_is_510;
 
@@ -279,9 +275,6 @@ sub new ($$;$) {
         if ( eval { require threads } ) {
             $self->{'mode'} = 'ithreads';
         }
-        elsif ( eval { require Thread } ) {
-            $self->{'mode'} = 'threads';
-        }
         else {
             my $fork = 0;
             if ( $^O ne "MSWin32" ) {
@@ -305,9 +298,6 @@ sub new ($$;$) {
         no warnings 'redefine';
         require threads;
         use warnings 'redefine';
-    }
-    elsif ( $self->{'mode'} eq 'threads' ) {
-        require Thread;
     }
     elsif ( $self->{'mode'} eq 'fork' ) {
 
@@ -490,15 +480,6 @@ sub ChildFunc {
     my ( $self, $method, @args ) = @_;
     if ( $self->{'mode'} eq 'single' ) {
         $self->$method(@args);
-    }
-    elsif ( $self->{'mode'} eq 'threads' ) {
-        my $startfunc = sub {
-            my $self   = shift;
-            my $method = shift;
-            $self->$method(@_);
-        };
-        Thread->new( $startfunc, $self, $method, @args )
-          or die "Failed to create a new thread: $!";
     }
     elsif ( $self->{'mode'} eq 'ithreads' ) {
         my $startfunc = sub {

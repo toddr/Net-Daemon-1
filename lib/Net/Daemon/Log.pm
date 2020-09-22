@@ -79,11 +79,6 @@ sub Log ($$$;@) {
                 $tid = $sthread->tid() . ", ";
             }
         }
-        elsif ( $self->{'mode'} eq 'threads' ) {
-            if ( my $sthread = Thread->self() ) {
-                $tid = $sthread->tid() . ", ";
-            }
-        }
     }
     if ($logfile) {
         my $logtime = $self->LogTime();
