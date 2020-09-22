@@ -23,13 +23,12 @@
 require 5.004;
 use strict;
 
-use Getopt::Long ();
-use Symbol ();
-use IO::Socket ();
-use Config ();
+use Getopt::Long     ();
+use Symbol           ();
+use IO::Socket       ();
+use Config           ();
 use Net::Daemon::Log ();
-use POSIX ();
-
+use POSIX            ();
 
 package Net::Daemon;
 
@@ -43,7 +42,6 @@ if ($this_is_510) {
     eval { require threads::shared; };
 }
 
-
 @Net::Daemon::ISA = qw(Net::Daemon::Log);
 
 #
@@ -51,7 +49,7 @@ if ($this_is_510) {
 #   regexp-threads.)
 #
 $Net::Daemon::RegExpLock = 1;
-threads::shared::share(\$Net::Daemon::RegExpLock) if $this_is_510;
+threads::shared::share( \$Net::Daemon::RegExpLock ) if $this_is_510;
 
 use vars qw($exit);
 
@@ -71,68 +69,85 @@ use vars qw($exit);
 ############################################################################
 
 sub Options ($) {
-    { 'catchint' => { 'template' => 'catchint!',
-		      'description' => '--nocatchint            '
-		          . "Try to catch interrupts when calling system\n"
-		          . '                        '
-		          . 'functions like bind(), recv()), ...'
-		    },
-      'childs' => { 'template' => 'childs=i',
-		    'description' =>  '--childs <num>          '
-			. 'Set number of preforked childs, implies mode=single.' },
-      'chroot' => { 'template' => 'chroot=s',
-		    'description' =>  '--chroot <dir>          '
-			. 'Change rootdir to given after binding to port.' },
-      'configfile' => { 'template' => 'configfile=s',
-			'description' =>  '--configfile <file>     '
-			    . 'Read options from config file <file>.' },
-      'debug' => { 'template' => 'debug',
-		   'description' =>  '--debug                 '
-		       . 'Turn debugging mode on'},
-      'facility' => { 'template' => 'facility=s',
-		      'description' => '--facility <facility>   '
-			  . 'Syslog facility; defaults to \'daemon\'' },
-      'group' => { 'template' => 'group=s',
-		   'description' => '--group <gid>           '
-		       . 'Change gid to given group after binding to port.' },
-      'help' => { 'template' => 'help',
-		  'description' => '--help                  '
-		      . 'Print this help message' },
-      'localaddr' => { 'template' => 'localaddr=s',
-		       'description' => '--localaddr <ip>        '
-			   . 'IP number to bind to; defaults to INADDR_ANY' },
-      'localpath' => { 'template' => 'localpath=s',
-		       'description' => '--localpath <path>      '
-		           . 'UNIX socket domain path to bind to' },
-      'localport' => { 'template' => 'localport=s',
-		       'description' => '--localport <port>      '
-			   . 'Port number to bind to' },
-      'logfile' => { 'template' => 'logfile=s',
-		     'description' => '--logfile <file>        '
-		         . 'Force logging to <file>' },
-      'loop-child' => { 'template' => 'loop-child',
-		       'description' => '--loop-child            '
-			      . 'Create a child process for loops' },
-      'loop-timeout' => { 'template' => 'loop-timeout=f',
-		       'description' => '--loop-timeout <secs>   '
-			      . 'Looping mode, <secs> seconds per loop' },
-      'mode' => { 'template' => 'mode=s',
-		  'description' => '--mode <mode>           '
-		      . 'Operation mode (threads, fork or single)' },
-      'pidfile' => { 'template' => 'pidfile=s',
-		     'description' => '--pidfile <file>        '
-			 . 'Use <file> as PID file' },
-      'proto' => { 'template' => 'proto=s',
-		   'description' => '--proto <protocol>        '
-		   . 'transport layer protocol: tcp (default) or unix' },
-      'user' => { 'template' => 'user=s',
-		  'description' => '--user <user>           '
-		      . 'Change uid to given user after binding to port.' },
-      'version' => { 'template' => 'version',
-		     'description' => '--version               '
-			 . 'Print version number and exit' } }
+    {
+        'catchint' => {
+            'template'    => 'catchint!',
+            'description' => '--nocatchint            ' . "Try to catch interrupts when calling system\n" . '                        ' . 'functions like bind(), recv()), ...'
+        },
+        'childs' => {
+            'template'    => 'childs=i',
+            'description' => '--childs <num>          ' . 'Set number of preforked childs, implies mode=single.'
+        },
+        'chroot' => {
+            'template'    => 'chroot=s',
+            'description' => '--chroot <dir>          ' . 'Change rootdir to given after binding to port.'
+        },
+        'configfile' => {
+            'template'    => 'configfile=s',
+            'description' => '--configfile <file>     ' . 'Read options from config file <file>.'
+        },
+        'debug' => {
+            'template'    => 'debug',
+            'description' => '--debug                 ' . 'Turn debugging mode on'
+        },
+        'facility' => {
+            'template'    => 'facility=s',
+            'description' => '--facility <facility>   ' . 'Syslog facility; defaults to \'daemon\''
+        },
+        'group' => {
+            'template'    => 'group=s',
+            'description' => '--group <gid>           ' . 'Change gid to given group after binding to port.'
+        },
+        'help' => {
+            'template'    => 'help',
+            'description' => '--help                  ' . 'Print this help message'
+        },
+        'localaddr' => {
+            'template'    => 'localaddr=s',
+            'description' => '--localaddr <ip>        ' . 'IP number to bind to; defaults to INADDR_ANY'
+        },
+        'localpath' => {
+            'template'    => 'localpath=s',
+            'description' => '--localpath <path>      ' . 'UNIX socket domain path to bind to'
+        },
+        'localport' => {
+            'template'    => 'localport=s',
+            'description' => '--localport <port>      ' . 'Port number to bind to'
+        },
+        'logfile' => {
+            'template'    => 'logfile=s',
+            'description' => '--logfile <file>        ' . 'Force logging to <file>'
+        },
+        'loop-child' => {
+            'template'    => 'loop-child',
+            'description' => '--loop-child            ' . 'Create a child process for loops'
+        },
+        'loop-timeout' => {
+            'template'    => 'loop-timeout=f',
+            'description' => '--loop-timeout <secs>   ' . 'Looping mode, <secs> seconds per loop'
+        },
+        'mode' => {
+            'template'    => 'mode=s',
+            'description' => '--mode <mode>           ' . 'Operation mode (threads, fork or single)'
+        },
+        'pidfile' => {
+            'template'    => 'pidfile=s',
+            'description' => '--pidfile <file>        ' . 'Use <file> as PID file'
+        },
+        'proto' => {
+            'template'    => 'proto=s',
+            'description' => '--proto <protocol>        ' . 'transport layer protocol: tcp (default) or unix'
+        },
+        'user' => {
+            'template'    => 'user=s',
+            'description' => '--user <user>           ' . 'Change uid to given user after binding to port.'
+        },
+        'version' => {
+            'template'    => 'version',
+            'description' => '--version               ' . 'Print version number and exit'
+        }
+    }
 }
-
 
 ############################################################################
 #
@@ -150,7 +165,6 @@ sub Version ($) {
     "Net::Daemon server, Copyright (C) 1998, Jochen Wiedmann";
 }
 
-
 ############################################################################
 #
 #   Name:    Usage (Class method)
@@ -164,21 +178,19 @@ sub Version ($) {
 ############################################################################
 
 sub Usage ($) {
-    my($class) = shift;
-    my($options) = $class->Options();
-    my(@options) = sort (keys %$options);
+    my ($class)   = shift;
+    my ($options) = $class->Options();
+    my (@options) = sort ( keys %$options );
 
     print STDERR "Usage: $0 <options>\n\nPossible options are:\n\n";
-    my($key);
-    foreach $key (sort (keys %$options)) {
-	my($o) = $options->{$key};
-	print STDERR "  ", $o->{'description'}, "\n" if $o->{'description'};
+    my ($key);
+    foreach $key ( sort ( keys %$options ) ) {
+        my ($o) = $options->{$key};
+        print STDERR "  ", $o->{'description'}, "\n" if $o->{'description'};
     }
     print STDERR "\n", $class->Version(), "\n";
     exit(1);
 }
-
-
 
 ############################################################################
 #
@@ -197,23 +209,23 @@ sub Usage ($) {
 ############################################################################
 
 sub ReadConfigFile {
-    my($self, $file, $options, $args) = @_;
-    if (! -f $file) {
-	$self->Fatal("No such config file: $file");
+    my ( $self, $file, $options, $args ) = @_;
+    if ( !-f $file ) {
+        $self->Fatal("No such config file: $file");
     }
     my $copts = do $file;
     if ($@) {
-	$self->Fatal("Error while processing config file $file: $@");
+        $self->Fatal("Error while processing config file $file: $@");
     }
-    if (!$copts || ref($copts) ne 'HASH') {
-	$self->Fatal("Config file $file did not return a hash ref.");
+    if ( !$copts || ref($copts) ne 'HASH' ) {
+        $self->Fatal("Config file $file did not return a hash ref.");
     }
+
     # Override current configuration with config file options.
-    while (my($var, $val) = each %$copts) {
-	$self->{$var} = $val;
+    while ( my ( $var, $val ) = each %$copts ) {
+        $self->{$var} = $val;
     }
 }
-
 
 ############################################################################
 #
@@ -230,94 +242,103 @@ sub ReadConfigFile {
 ############################################################################
 
 sub new ($$;$) {
-    my($class, $attr, $args) = @_;
-    my($self) = $attr ? \%$attr : {};
-    bless($self, (ref($class) || $class));
+    my ( $class, $attr, $args ) = @_;
+    my ($self) = $attr ? \%$attr : {};
+    bless( $self, ( ref($class) || $class ) );
 
-    my $options = ($self->{'options'} ||= {});
+    my $options = ( $self->{'options'} ||= {} );
     $self->{'args'} ||= [];
     if ($args) {
-	my @optList = map { $_->{'template'} } values(%{$class->Options()});
+        my @optList = map { $_->{'template'} } values( %{ $class->Options() } );
 
-	local @ARGV = @$args;
-	if (!Getopt::Long::GetOptions($options, @optList)) {
-	    $self->Usage();
-	}
-	@{$self->{'args'}} = @ARGV;
+        local @ARGV = @$args;
+        if ( !Getopt::Long::GetOptions( $options, @optList ) ) {
+            $self->Usage();
+        }
+        @{ $self->{'args'} } = @ARGV;
 
-	if ($options->{'help'}) {
-	    $self->Usage();
-	}
-	if ($options->{'version'}) {
-	    print STDERR $self->Version(), "\n";
-	    exit 1;
-	}
+        if ( $options->{'help'} ) {
+            $self->Usage();
+        }
+        if ( $options->{'version'} ) {
+            print STDERR $self->Version(), "\n";
+            exit 1;
+        }
     }
 
-    my $file = $options->{'configfile'}  ||  $self->{'configfile'};
+    my $file = $options->{'configfile'} || $self->{'configfile'};
     if ($file) {
-	$self->ReadConfigFile($file, $options, $args);
+        $self->ReadConfigFile( $file, $options, $args );
     }
-    while (my($var, $val) = each %$options) {
-	$self->{$var} = $val;
-    }
-
-    if ($self->{'childs'}) {
-	$self->{'mode'} = 'single';
-    } elsif (!defined($self->{'mode'})) {
-	if (eval { require threads }) {
-	    $self->{'mode'} = 'ithreads';
-	} elsif (eval { require Thread }) {
-	    $self->{'mode'} = 'threads';
-	} else {
-	    my $fork = 0;
-	    if ($^O ne "MSWin32") {
-		my $pid = eval { fork() };
-		if (defined($pid)) {
-		    if (!$pid) { exit; } # Child
-		    $fork = 1;
-		    wait;
-	        }
-	    }
-	    if ($fork) {
-		$self->{'mode'} = 'fork';
-	    } else {
-		$self->{'mode'} = 'single';
-	    }
-	}
+    while ( my ( $var, $val ) = each %$options ) {
+        $self->{$var} = $val;
     }
 
-    if ($self->{'mode'} eq 'ithreads') {
+    if ( $self->{'childs'} ) {
+        $self->{'mode'} = 'single';
+    }
+    elsif ( !defined( $self->{'mode'} ) ) {
+        if ( eval { require threads } ) {
+            $self->{'mode'} = 'ithreads';
+        }
+        elsif ( eval { require Thread } ) {
+            $self->{'mode'} = 'threads';
+        }
+        else {
+            my $fork = 0;
+            if ( $^O ne "MSWin32" ) {
+                my $pid = eval { fork() };
+                if ( defined($pid) ) {
+                    if ( !$pid ) { exit; }    # Child
+                    $fork = 1;
+                    wait;
+                }
+            }
+            if ($fork) {
+                $self->{'mode'} = 'fork';
+            }
+            else {
+                $self->{'mode'} = 'single';
+            }
+        }
+    }
+
+    if ( $self->{'mode'} eq 'ithreads' ) {
         no warnings 'redefine';
-	require threads;
+        require threads;
         use warnings 'redefine';
-    } elsif ($self->{'mode'} eq 'threads') {
-	require Thread;
-    } elsif ($self->{'mode'} eq 'fork') {
-	# Initialize forking mode ...
-    } elsif ($self->{'mode'} eq 'single') {
-	# Initialize single mode ...
-    } else {
-	$self->Fatal("Unknown operation mode: $self->{'mode'}");
     }
-    $self->{'catchint'} = 1 unless exists($self->{'catchint'});
+    elsif ( $self->{'mode'} eq 'threads' ) {
+        require Thread;
+    }
+    elsif ( $self->{'mode'} eq 'fork' ) {
+
+        # Initialize forking mode ...
+    }
+    elsif ( $self->{'mode'} eq 'single' ) {
+
+        # Initialize single mode ...
+    }
+    else {
+        $self->Fatal("Unknown operation mode: $self->{'mode'}");
+    }
+    $self->{'catchint'} = 1 unless exists( $self->{'catchint'} );
     $self->Debug("Server starting in operation mode $self->{'mode'}");
-    if ($self->{'childs'}) {
-	$self->Debug("Preforking $self->{'childs'} child processes ...");
+    if ( $self->{'childs'} ) {
+        $self->Debug("Preforking $self->{'childs'} child processes ...");
     }
 
     $self;
 }
 
 sub Clone ($$) {
-    my($proto, $client) = @_;
-    my $self = { %$proto };
+    my ( $proto, $client ) = @_;
+    my $self = {%$proto};
     $self->{'socket'} = $client;
     $self->{'parent'} = $proto;
-    bless($self, ref($proto));
+    bless( $self, ref($proto) );
     $self;
 }
-
 
 ############################################################################
 #
@@ -333,68 +354,70 @@ sub Clone ($$) {
 ############################################################################
 
 sub Accept ($) {
-    my $self = shift;
-    my $socket = $self->{'socket'};
+    my $self    = shift;
+    my $socket  = $self->{'socket'};
     my $clients = $self->{'clients'};
-    my $from = $self->{'proto'} eq 'unix' ?
-	"Unix socket" : sprintf("%s, port %s",
-				$socket->peerhost(), $socket->peerport());
+    my $from    = $self->{'proto'} eq 'unix' ? "Unix socket" : sprintf(
+        "%s, port %s",
+        $socket->peerhost(), $socket->peerport()
+    );
 
     # Host based authorization
-    if ($self->{'clients'}) {
-	my ($name, $aliases, $addrtype, $length, @addrs);
-	if ($self->{'proto'} eq 'unix') {
-	    ($name, $aliases, $addrtype, $length, @addrs) =
-		('localhost', '', Socket::AF_INET(),
-		 length(Socket::IN_ADDR_ANY()),
-			Socket::inet_aton('127.0.0.1'));
-	} else {
-	    ($name, $aliases, $addrtype, $length, @addrs) =
-		gethostbyaddr($socket->peeraddr(), Socket::AF_INET());
-	}
-	my @patterns = @addrs ?
-	    map { Socket::inet_ntoa($_) } @addrs  :
-	    $socket->peerhost();
-	push(@patterns, $name)			if ($name);
-	push(@patterns, split(/ /, $aliases))	if $aliases;
+    if ( $self->{'clients'} ) {
+        my ( $name, $aliases, $addrtype, $length, @addrs );
+        if ( $self->{'proto'} eq 'unix' ) {
+            ( $name, $aliases, $addrtype, $length, @addrs ) = (
+                'localhost', '', Socket::AF_INET(),
+                length( Socket::IN_ADDR_ANY() ),
+                Socket::inet_aton('127.0.0.1')
+            );
+        }
+        else {
+            ( $name, $aliases, $addrtype, $length, @addrs ) =
+              gethostbyaddr( $socket->peeraddr(), Socket::AF_INET() );
+        }
+        my @patterns =
+          @addrs
+          ? map { Socket::inet_ntoa($_) } @addrs
+          : $socket->peerhost();
+        push( @patterns, $name ) if ($name);
+        push( @patterns, split( / /, $aliases ) ) if $aliases;
 
-	my $found;
-	OUTER: foreach my $client (@$clients) {
-	    if (!$client->{'mask'}) {
-		$found = $client;
-		last;
-	    }
-	    my $masks = ref($client->{'mask'}) ?
-		$client->{'mask'} : [ $client->{'mask'} ];
+        my $found;
+      OUTER: foreach my $client (@$clients) {
+            if ( !$client->{'mask'} ) {
+                $found = $client;
+                last;
+            }
+            my $masks = ref( $client->{'mask'} ) ? $client->{'mask'} : [ $client->{'mask'} ];
 
-	    #
-	    # Regular expressions aren't thread safe, as of
-	    # 5.00502 :-(
-	    #
-	    my $lock;
-	    $lock = lock($Net::Daemon::RegExpLock)
-		if ($self->{'mode'} eq 'threads');
-	    foreach my $mask (@$masks) {
-		foreach my $alias (@patterns) {
-		    if ($alias =~ /$mask/) {
-			$found = $client;
-			last OUTER;
-		    }
-		}
-	    }
-	}
+            #
+            # Regular expressions aren't thread safe, as of
+            # 5.00502 :-(
+            #
+            my $lock;
+            $lock = lock($Net::Daemon::RegExpLock)
+              if ( $self->{'mode'} eq 'threads' );
+            foreach my $mask (@$masks) {
+                foreach my $alias (@patterns) {
+                    if ( $alias =~ /$mask/ ) {
+                        $found = $client;
+                        last OUTER;
+                    }
+                }
+            }
+        }
 
-	if (!$found  ||  !$found->{'accept'}) {
-	    $self->Error("Access not permitted from $from");
-	    return 0;
-	}
-	$self->{'client'} = $found;
+        if ( !$found || !$found->{'accept'} ) {
+            $self->Error("Access not permitted from $from");
+            return 0;
+        }
+        $self->{'client'} = $found;
     }
 
     $self->Debug("Accepting client from $from");
     1;
 }
-
 
 ############################################################################
 #
@@ -410,7 +433,6 @@ sub Accept ($) {
 
 sub Run ($) {
 }
-
 
 ############################################################################
 #
@@ -430,9 +452,8 @@ sub Run ($) {
 sub Done ($;$) {
     my $self = shift;
     $self->{'done'} = shift if @_;
-    $self->{'done'}
+    $self->{'done'};
 }
-
 
 ############################################################################
 #
@@ -451,7 +472,6 @@ sub Done ($;$) {
 sub Loop {
 }
 
-
 ############################################################################
 #
 #   Name:    ChildFunc (Instance method)
@@ -469,34 +489,36 @@ sub Loop {
 ############################################################################
 
 sub ChildFunc {
-    my($self, $method, @args) = @_;
-    if ($self->{'mode'} eq 'single') {
-	$self->$method(@args);
-    } elsif ($self->{'mode'} eq 'threads') {
-	my $startfunc = sub {
-	    my $self = shift;
-	    my $method = shift;
-	    $self->$method(@_)
-	};
-	Thread->new($startfunc, $self, $method, @args)
-	    or die "Failed to create a new thread: $!";
-    } elsif ($self->{'mode'} eq 'ithreads') {
-	my $startfunc = sub {
-	    my $self = shift;
-	    my $method = shift;
-	    $self->$method(@_)
-	};
-	threads->new($startfunc, $self, $method, @args)
-	    or die "Failed to create a new thread: $!";
-    } else {
-	my $pid = fork();
-	die "Cannot fork: $!" unless defined $pid;
-	return if $pid;        # Parent
-	$self->$method(@args); # Child
-	exit(0);
+    my ( $self, $method, @args ) = @_;
+    if ( $self->{'mode'} eq 'single' ) {
+        $self->$method(@args);
+    }
+    elsif ( $self->{'mode'} eq 'threads' ) {
+        my $startfunc = sub {
+            my $self   = shift;
+            my $method = shift;
+            $self->$method(@_);
+        };
+        Thread->new( $startfunc, $self, $method, @args )
+          or die "Failed to create a new thread: $!";
+    }
+    elsif ( $self->{'mode'} eq 'ithreads' ) {
+        my $startfunc = sub {
+            my $self   = shift;
+            my $method = shift;
+            $self->$method(@_);
+        };
+        threads->new( $startfunc, $self, $method, @args )
+          or die "Failed to create a new thread: $!";
+    }
+    else {
+        my $pid = fork();
+        die "Cannot fork: $!" unless defined $pid;
+        return if $pid;           # Parent
+        $self->$method(@args);    # Child
+        exit(0);
     }
 }
-
 
 ############################################################################
 #
@@ -516,22 +538,24 @@ sub HandleChild {
     my $self = shift;
     $self->Debug("New child starting ($self).");
     eval {
-	if (!$self->Accept()) {
-	    $self->Error('Refusing client');
-	} else {
-	    $self->Debug('Accepting client');
-	    $self->Run();
-	}
+        if ( !$self->Accept() ) {
+            $self->Error('Refusing client');
+        }
+        else {
+            $self->Debug('Accepting client');
+            $self->Run();
+        }
     };
     $self->Error("Child died: $@") if $@;
     $self->Debug("Child terminating.");
     $self->Close();
-};
+}
 
 sub SigChildHandler {
-    my $self = shift; my $ref = shift;
+    my $self = shift;
+    my $ref  = shift;
     return 'IGNORE' if $self->{'mode'} eq 'fork' || $self->{'childs'};
-    return undef; # Don't care for childs.
+    return undef;    # Don't care for childs.
 }
 
 sub Bind ($) {
@@ -539,177 +563,192 @@ sub Bind ($) {
     my $fh;
     my $child_pid;
 
-    my $reaper = $self->SigChildHandler(\$child_pid);
+    my $reaper = $self->SigChildHandler( \$child_pid );
     $SIG{'CHLD'} = $reaper if $reaper;
 
-    if (!$self->{'socket'}) {
-	$self->{'proto'} ||= ($self->{'localpath'}) ? 'unix' : 'tcp';
+    if ( !$self->{'socket'} ) {
+        $self->{'proto'} ||= ( $self->{'localpath'} ) ? 'unix' : 'tcp';
 
-	if ($self->{'proto'} eq 'unix') {
-	    my $path = $self->{'localpath'}
-		or $self->Fatal('Missing option: localpath');
-	    unlink $path;
-	    $self->Fatal("Can't remove stale Unix socket ($path): $!")
-		if -e $path;
-	    my $old_umask = umask 0;
-	    $self->{'socket'} =
-		IO::Socket::UNIX->new('Local' => $path,
-				      'Listen' => $self->{'listen'} || 10)
-		      or $self->Fatal("Cannot create Unix socket $path: $!");
-	    umask $old_umask;
-	} else {
-	    $self->{'socket'} = IO::Socket::INET->new
-		( 'LocalAddr' => $self->{'localaddr'},
-		  'LocalPort' => $self->{'localport'},
-		  'Proto'     => $self->{'proto'} || 'tcp',
-		  'Listen'    => $self->{'listen'} || 10,
-		  'Reuse'     => 1)
-		    or $self->Fatal("Cannot create socket: $!");
-	}
+        if ( $self->{'proto'} eq 'unix' ) {
+            my $path = $self->{'localpath'}
+              or $self->Fatal('Missing option: localpath');
+            unlink $path;
+            $self->Fatal("Can't remove stale Unix socket ($path): $!")
+              if -e $path;
+            my $old_umask = umask 0;
+            $self->{'socket'} = IO::Socket::UNIX->new(
+                'Local'  => $path,
+                'Listen' => $self->{'listen'} || 10
+            ) or $self->Fatal("Cannot create Unix socket $path: $!");
+            umask $old_umask;
+        }
+        else {
+            $self->{'socket'} = IO::Socket::INET->new(
+                'LocalAddr' => $self->{'localaddr'},
+                'LocalPort' => $self->{'localport'},
+                'Proto'     => $self->{'proto'} || 'tcp',
+                'Listen'    => $self->{'listen'} || 10,
+                'Reuse'     => 1
+            ) or $self->Fatal("Cannot create socket: $!");
+        }
     }
-    $self->Log('notice', "Server starting");
+    $self->Log( 'notice', "Server starting" );
 
-    if ((my $pidfile = ($self->{'pidfile'} || '')) ne 'none') {
-	$self->Debug("Writing PID to $pidfile");
-	my $fh = Symbol::gensym();
-	$self->Fatal("Cannot write to $pidfile: $!")
-	    unless (open (OUT, ">$pidfile")
-		    and (print OUT "$$\n")
-		    and close(OUT));
-    }
-
-    if (my $dir = $self->{'chroot'}) {
-	$self->Debug("Changing root directory to $dir");
-	if (!chroot($dir)) {
-	    $self->Fatal("Cannot change root directory to $dir: $!");
-	}
-    }
-    if (my $group = $self->{'group'}) {
-	$self->Debug("Changing GID to $group");
-	my $gid;
-	if ($group !~ /^\d+$/) {
-	    if (defined(my $gid = getgrnam($group))) {
-		$group = $gid;
-	    } else {
-		$self->Fatal("Cannot determine gid of $group: $!");
-	    }
-	}
-	$( = ($) = $group);
-    }
-    if (my $user = $self->{'user'}) {
-	$self->Debug("Changing UID to $user");
-	my $uid;
-	if ($user !~ /^\d+$/) {
-	    if (defined(my $uid = getpwnam($user))) {
-		$user = $uid;
-	    } else {
-		$self->Fatal("Cannot determine uid of $user: $!");
-	    }
-	}
-	$< = ($> = $user);
+    if ( ( my $pidfile = ( $self->{'pidfile'} || '' ) ) ne 'none' ) {
+        $self->Debug("Writing PID to $pidfile");
+        my $fh = Symbol::gensym();
+        $self->Fatal("Cannot write to $pidfile: $!")
+          unless ( open( OUT, ">$pidfile" )
+            and ( print OUT "$$\n" )
+            and close(OUT) );
     }
 
-    if ($self->{'childs'}) {
-      my $pid;
-
-      my $childpids = $self->{'childpids'} = {};
-      for (my $n = 0; $n < $self->{'childs'}; $n++) {
-	$pid = fork();
-	die "Cannot fork: $!" unless defined $pid;
-	if (!$pid) { #Child
-	  $self->{'mode'} = 'single';
-	  last;
-	}
-	# Parent
-	$childpids->{$pid} = 1;
-      }
-      if ($pid) {
-	# Parent waits for childs in a loop, then exits ...
-	# We could also terminate the parent process, but
-	# if the parent is still running we can kill the
-	# whole group by killing the childs.
-	my $childpid;
-	$exit = 0;
-	$SIG{'TERM'} = sub { die };
-	$SIG{'INT'}  = sub { die };
-	eval {
-	  do {
-	    $childpid = wait;
-	    delete $childpids->{$childpid};
-	    $self->Debug("Child $childpid has exited");
-	  } until ($childpid <= 0 || $exit || keys(%$childpids) == 0);
-	};
-	my @pids = keys %{$self -> {'childpids'}};
-	if (@pids) {
-	  $self->Debug("kill TERM childs: " . join(",", @pids));
-	  kill 'TERM', @pids if @pids ; # send a TERM to all childs
-	}
-	exit (0);
-      }
+    if ( my $dir = $self->{'chroot'} ) {
+        $self->Debug("Changing root directory to $dir");
+        if ( !chroot($dir) ) {
+            $self->Fatal("Cannot change root directory to $dir: $!");
+        }
+    }
+    if ( my $group = $self->{'group'} ) {
+        $self->Debug("Changing GID to $group");
+        my $gid;
+        if ( $group !~ /^\d+$/ ) {
+            if ( defined( my $gid = getgrnam($group) ) ) {
+                $group = $gid;
+            }
+            else {
+                $self->Fatal("Cannot determine gid of $group: $!");
+            }
+        }
+        $( = ( $) = $group );
+    }
+    if ( my $user = $self->{'user'} ) {
+        $self->Debug("Changing UID to $user");
+        my $uid;
+        if ( $user !~ /^\d+$/ ) {
+            if ( defined( my $uid = getpwnam($user) ) ) {
+                $user = $uid;
+            }
+            else {
+                $self->Fatal("Cannot determine uid of $user: $!");
+            }
+        }
+        $< = ( $> = $user );
     }
 
-    my $time = $self->{'loop-timeout'} ?
-	(time() + $self->{'loop-timeout'}) : 0;
+    if ( $self->{'childs'} ) {
+        my $pid;
+
+        my $childpids = $self->{'childpids'} = {};
+        for ( my $n = 0; $n < $self->{'childs'}; $n++ ) {
+            $pid = fork();
+            die "Cannot fork: $!" unless defined $pid;
+            if ( !$pid ) {    #Child
+                $self->{'mode'} = 'single';
+                last;
+            }
+
+            # Parent
+            $childpids->{$pid} = 1;
+        }
+        if ($pid) {
+
+            # Parent waits for childs in a loop, then exits ...
+            # We could also terminate the parent process, but
+            # if the parent is still running we can kill the
+            # whole group by killing the childs.
+            my $childpid;
+            $exit = 0;
+            $SIG{'TERM'} = sub { die };
+            $SIG{'INT'}  = sub { die };
+            eval {
+                do {
+                    $childpid = wait;
+                    delete $childpids->{$childpid};
+                    $self->Debug("Child $childpid has exited");
+                } until ( $childpid <= 0 || $exit || keys(%$childpids) == 0 );
+            };
+            my @pids = keys %{ $self->{'childpids'} };
+            if (@pids) {
+                $self->Debug( "kill TERM childs: " . join( ",", @pids ) );
+                kill 'TERM', @pids if @pids;    # send a TERM to all childs
+            }
+            exit(0);
+        }
+    }
+
+    my $time = $self->{'loop-timeout'} ? ( time() + $self->{'loop-timeout'} ) : 0;
 
     my $client;
-    while (!$self->Done()) {
-	undef $child_pid;
-	my $rin = '';
-	vec($rin,$self->{'socket'}->fileno(),1) = 1;
-	my($rout, $t);
-	if ($time) {
-	    my $tm = time();
-	    $t = $time - $tm;
-	    $t = 0 if $t < 0;
-	    $self->Debug("Loop time: time=$time now=$tm, t=$t");
-	}
-	my($nfound) = select($rout=$rin, undef, undef, $t);
-	if ($nfound < 0) {
-	    if (!$child_pid  and
-		($! != POSIX::EINTR() or !$self->{'catchint'})) {
-		$self->Fatal("%s server failed to select(): %s",
-			     ref($self), $self->{'socket'}->error() || $!);
-	    }
-	} elsif ($nfound) {
-	    my $client = $self->{'socket'}->accept();
-	    if (!$client) {
-		if (!$child_pid  and
-		    ($! != POSIX::EINTR() or !$self->{'catchint'})) {
-		    $self->Error("%s server failed to accept: %s",
-				 ref($self), $self->{'socket'}->error() || $!);
-		}
-	    } else {
-		if ($self->{'debug'}) {
-		    my $from = $self->{'proto'} eq 'unix' ?
-			'Unix socket' :
-			sprintf('%s, port %s',
-				# SE 19990917: display client data!!
-				$client->peerhost(),
-				$client->peerport());
-		    $self->Debug("Connection from $from");
-		}
-		my $sth = $self->Clone($client);
-		$self->Debug("Child clone: $sth\n");
-		$sth->ChildFunc('HandleChild') if $sth;
-		if ($self->{'mode'} eq 'fork') {
+    while ( !$self->Done() ) {
+        undef $child_pid;
+        my $rin = '';
+        vec( $rin, $self->{'socket'}->fileno(), 1 ) = 1;
+        my ( $rout, $t );
+        if ($time) {
+            my $tm = time();
+            $t = $time - $tm;
+            $t = 0 if $t < 0;
+            $self->Debug("Loop time: time=$time now=$tm, t=$t");
+        }
+        my ($nfound) = select( $rout = $rin, undef, undef, $t );
+        if ( $nfound < 0 ) {
+            if ( !$child_pid
+                and ( $! != POSIX::EINTR() or !$self->{'catchint'} ) ) {
+                $self->Fatal(
+                    "%s server failed to select(): %s",
+                    ref($self), $self->{'socket'}->error() || $!
+                );
+            }
+        }
+        elsif ($nfound) {
+            my $client = $self->{'socket'}->accept();
+            if ( !$client ) {
+                if ( !$child_pid
+                    and ( $! != POSIX::EINTR() or !$self->{'catchint'} ) ) {
+                    $self->Error(
+                        "%s server failed to accept: %s",
+                        ref($self), $self->{'socket'}->error() || $!
+                    );
+                }
+            }
+            else {
+                if ( $self->{'debug'} ) {
+                    my $from =
+                      $self->{'proto'} eq 'unix'
+                      ? 'Unix socket'
+                      : sprintf(
+                        '%s, port %s',
+
+                        # SE 19990917: display client data!!
+                        $client->peerhost(),
+                        $client->peerport()
+                      );
+                    $self->Debug("Connection from $from");
+                }
+                my $sth = $self->Clone($client);
+                $self->Debug("Child clone: $sth\n");
+                $sth->ChildFunc('HandleChild') if $sth;
+                if ( $self->{'mode'} eq 'fork' ) {
                     $self->ServClose($client);
-		}
-	    }
-	}
-	if ($time) {
-	    my $t = time();
-	    if ($t >= $time) {
-		$time = $t;
-		if ($self->{'loop-child'}) {
-		    $self->ChildFunc('Loop');
-		} else {
-		    $self->Loop();
-		}
-		$time += $self->{'loop-timeout'};
-	    }
-	}
+                }
+            }
+        }
+        if ($time) {
+            my $t = time();
+            if ( $t >= $time ) {
+                $time = $t;
+                if ( $self->{'loop-child'} ) {
+                    $self->ChildFunc('Loop');
+                }
+                else {
+                    $self->Loop();
+                }
+                $time += $self->{'loop-timeout'};
+            }
+        }
     }
-    $self->Log('notice', "%s server terminating", ref($self));
+    $self->Log( 'notice', "%s server terminating", ref($self) );
 }
 
 sub Close {
@@ -718,11 +757,10 @@ sub Close {
 }
 
 sub ServClose {
-    my $self = shift;
+    my $self   = shift;
     my $socket = shift;
     $socket->close() if $socket;
 }
-
 
 1;
 

@@ -10,5 +10,6 @@
 ^cpanfile$
 ^\.gitignore$
 ^\.git/
-/MANIFEST.bak
-/MYMETA\.
+^MANIFEST.bak
+^MYMETA\.
+^\.perltidyrc$
