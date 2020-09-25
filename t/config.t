@@ -10,7 +10,7 @@ use Config            ();
 use Net::Daemon::Test ();
 use Socket            ();
 
-my $CONFIG_FILE = "./t/config";
+my $CONFIG_FILE = "t/config";
 my $numTests    = 5;
 
 sub RunTest ($$) {
