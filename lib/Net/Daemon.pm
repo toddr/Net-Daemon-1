@@ -18,32 +18,33 @@
 #
 ############################################################################
 
+package Net::Daemon;
+
 use strict;
 use warnings;
+
+use Config;
 
 use Getopt::Long     ();
 use Symbol           ();
 use IO::Socket       ();
-use Config           ();
 use Net::Daemon::Log ();
 use POSIX            ();
 
-package Net::Daemon;
-
 our $VERSION = '0.48';
-
-# Dummy share() in case we're >= 5.10. If we are, require/import of
-# threads::shared will replace it appropriately.
-my $this_is_510 = $^V ge v5.10.0;
-if ($this_is_510) {
-    eval { require threads; };
-    eval { require threads::shared; };
-}
-
 our @ISA = qw(Net::Daemon::Log);
 
 our $RegExpLock = 1;
-threads::shared::share( \$RegExpLock ) if $this_is_510;
+
+# Dummy share() in case we're >= 5.10. If we are, require/import of
+# threads::shared will replace it appropriately.
+# But ONLY if we are built with threads and forks has not already been loaded.
+my $use_ithreads = ( $^V ge v5.10.0 && $Config{'useithreads'} && !$INC{'forks.pm'} ) ? 1 : 0;
+if ($use_ithreads) {
+    eval { require threads; };
+    eval { require threads::shared; };
+    threads::shared::share( $RegExpLock ) if $forks::threads; # Assuming this isn't threads masquerading as forks.
+}
 
 our $exit;
 
