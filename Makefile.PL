@@ -17,10 +17,12 @@ my %opts = (
         'SUFFIX'       => q[.gz]
     },
     'realclean' => { 'FILES' => 't/config ndtest.prt' },
-    'resources' => {
-        license    => 'http://dev.perl.org/licenses/',
-        bugtracker => 'https://github.com/toddr/Net-Daemon/issues',
-        repository => 'https://github.com/toddr/Net-Daemon',
+    'META_MERGE' => {
+        'resources' => {
+            license    => 'http://dev.perl.org/licenses/',
+            bugtracker => 'https://github.com/toddr/Net-Daemon/issues',
+            repository => 'https://github.com/toddr/Net-Daemon',
+        },
     },
 );
 
